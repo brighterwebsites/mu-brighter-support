@@ -3,9 +3,18 @@
  * Brighter Tools: Tweaks
  *
  * File: brighter-tweaks.php
- * Version: 4.3.2
+ * Version: 4.4.0
  *
  * Changelog:
+ * 4.4.0 - Replaced global "Post Types" + "Preload Image Size" controls with a per-post-type
+ *         registered image size selector (brighter_preload_post_type_sizes). Auto-migrates
+ *         existing brighter_preload_post_types + brighter_preload_use_og_image on first load.
+ *         Fixed Google Fonts Preload Card 1 save wiping the field: register_setting() used
+ *         wp_kses_post as its sanitize_callback, which strips <link> tags (not part of the
+ *         default "post" allowed tags), silently emptying the option on every save via
+ *         options.php. Now uses a dedicated sanitiser that allows <link> attributes.
+ *         Also removed process_save() resets of post-type/webp/size options that no longer
+ *         belong to the Per-Page Preloads form (they are now saved independently via Card 2).
  * 4.3.2 - Fixed duplicate "Preload Featured Images on Singles" / "Google Fonts Preload"
  *         fields bleeding into the "Per-Page Preloads" card when embedded in Site
  *         Essentials > Performance. render_preload_form() now only calls
@@ -27,11 +36,14 @@ defined('ABSPATH') || exit;
 class Brighter_Tweaks {
     const OPT = 'bw_preloads_map';
     const OPT_THEME = 'theme_colour';
-    const OPT_POST_TYPES = 'brighter_preload_post_types';
+    const OPT_POST_TYPES = 'brighter_preload_post_types'; // Legacy, read only during migration.
+    const OPT_POST_TYPE_SIZES = 'brighter_preload_post_type_sizes';
     const OPT_GOOGLE_FONTS = 'bw_google_fonts_preload';
+    const OPT_PTSIZES_MIGRATED = 'brighter_tweaks_ptsizes_migrated';
 
     public static function boot() {
         // Admin
+        add_action('admin_init', [__CLASS__, 'maybe_migrate_post_type_sizes'], 5);
         add_action('admin_init', [__CLASS__, 'register_settings']);
         add_action('admin_post_brighter_tweaks_save', [__CLASS__, 'handle_save_redirect']);
         
@@ -56,6 +68,60 @@ class Brighter_Tweaks {
     }
 
     /**
+     * One-time migration: convert the old global "Post Types" + "Preload Image Size"
+     * (og-image vs full) controls into the new per-post-type size map. Runs once, guarded
+     * by a dedicated flag option (not get_option() default checks, since register_setting()
+     * registers a default for OPT_POST_TYPE_SIZES that would otherwise mask "never saved").
+     */
+    public static function maybe_migrate_post_type_sizes() {
+        if (get_option(self::OPT_PTSIZES_MIGRATED)) {
+            return;
+        }
+
+        $old_types = (array) get_option(self::OPT_POST_TYPES, []);
+        $used_og = get_option('brighter_preload_use_og_image', 1);
+        $default_size = $used_og ? 'og-image' : 'full';
+
+        $map = [];
+        foreach ($old_types as $type) {
+            $type = sanitize_key($type);
+            if ($type !== '') {
+                $map[$type] = $default_size;
+            }
+        }
+
+        update_option(self::OPT_POST_TYPE_SIZES, $map);
+        update_option(self::OPT_PTSIZES_MIGRATED, 1);
+    }
+
+    /**
+     * Render the per-post-type "which registered image size to preload" select fields.
+     */
+    public static function render_post_type_size_fields() {
+        $selected = (array) get_option(self::OPT_POST_TYPE_SIZES, []);
+        $post_types = get_post_types(['public' => true], 'objects');
+        $registered_sizes = wp_get_registered_image_subsizes();
+
+        foreach ($post_types as $type => $obj) {
+            $current = isset($selected[$type]) ? $selected[$type] : 'none';
+            echo '<div style="margin-bottom:10px">';
+            echo '<label style="display:inline-block;min-width:180px;font-weight:600">' . esc_html($obj->labels->singular_name . " ($type)") . '</label> ';
+            echo '<select name="' . esc_attr(self::OPT_POST_TYPE_SIZES) . '[' . esc_attr($type) . ']">';
+            echo '<option value="none"' . selected('none', $current, false) . '>' . esc_html__('Do not preload', 'brighterwebsites') . '</option>';
+            echo '<option value="full"' . selected('full', $current, false) . '>' . esc_html__('Full size (original)', 'brighterwebsites') . '</option>';
+            foreach ($registered_sizes as $size_name => $size) {
+                $label = $size_name;
+                $label .= !empty($size['height']) ? " ({$size['width']}×{$size['height']})" : " ({$size['width']}w)";
+                echo '<option value="' . esc_attr($size_name) . '"' . selected($size_name, $current, false) . '>' . esc_html($label) . '</option>';
+            }
+            echo '</select>';
+            echo '</div>';
+        }
+
+        echo '<p class="description">' . esc_html__('"Do not preload" skips this post type entirely. If the selected size does not exist for a given image, the full-size image is used as a fallback.', 'brighterwebsites') . '</p>';
+    }
+
+    /**
      * Register settings
      */
     public static function register_settings() {
@@ -73,15 +139,13 @@ class Brighter_Tweaks {
             'default' => '',
         ]);
 
-        // Post types for featured image preload
-        register_setting('brighter_tweaks', self::OPT_POST_TYPES, [
+        // Per-post-type featured image preload size
+        register_setting('brighter_tweaks', self::OPT_POST_TYPE_SIZES, [
             'type' => 'array',
-            'sanitize_callback' => function($input) {
-                return array_map('sanitize_text_field', (array)$input);
-            },
-            'default' => []
+            'sanitize_callback' => [__CLASS__, 'sanitise_post_type_sizes'],
+            'default' => [],
         ]);
-        
+
         // WebP conversion options for preloads
         register_setting('brighter_tweaks', 'brighter_preload_webp_append', [
             'type' => 'integer',
@@ -92,17 +156,11 @@ class Brighter_Tweaks {
             'type' => 'integer',
             'default' => 0
         ]);
-        
-        // OG image size option for preloads
-        register_setting('brighter_tweaks', 'brighter_preload_use_og_image', [
-            'type' => 'integer',
-            'default' => 1 // Default to ON
-        ]);
-        
+
         // Google Fonts preload
         register_setting('brighter_tweaks', self::OPT_GOOGLE_FONTS, [
             'type' => 'string',
-            'sanitize_callback' => 'wp_kses_post',
+            'sanitize_callback' => [__CLASS__, 'sanitise_google_fonts_preload'],
             'default' => ''
         ]);
 
@@ -110,23 +168,14 @@ class Brighter_Tweaks {
         add_settings_section(
             'preload_on_singles',
             'Preload Featured Images on Singles',
-            function () { 
-                echo '<p>' . esc_html__('Select the post types to Preload the OG 1200×630 Image version of Featured Images on Singles. *Requires OG image to be selected in Image Optimization.', 'brighterwebsites') . '</p>'; 
+            function () {
+                echo '<p>' . esc_html__('Choose which registered image size (if any) to preload as the featured image on singles, per post type.', 'brighterwebsites') . '</p>';
             },
             'brighter_tweaks'
         );
 
-        add_settings_field('brighter_preload_post_types', 'Post Types', function () {
-            $selected = (array) get_option(self::OPT_POST_TYPES, []);
-            $post_types = get_post_types(['public' => true], 'objects');
-
-            foreach ($post_types as $type => $obj) {
-                $checked = in_array($type, $selected, true) ? 'checked' : '';
-                echo '<label style="display:block;margin-bottom:4px">';
-                echo '<input type="checkbox" name="' . esc_attr(self::OPT_POST_TYPES) . '[]" value="' . esc_attr($type) . '" ' . $checked . '> ';
-                echo esc_html($obj->labels->singular_name . " ($type)");
-                echo '</label>';
-            }
+        add_settings_field('brighter_preload_post_type_sizes', 'Featured Image Size by Post Type', function () {
+            self::render_post_type_size_fields();
         }, 'brighter_tweaks', 'preload_on_singles');
         
         // WebP options for featured image preloads
@@ -145,18 +194,6 @@ class Brighter_Tweaks {
             echo '</label>';
             
             echo '<p class="description">*Replace will take preference if both options selected.</p>';
-        }, 'brighter_tweaks', 'preload_on_singles');
-        
-        // Option to use OG image for preload
-        add_settings_field('brighter_preload_use_og_image', 'Preload Image Size', function () {
-            $use_og = get_option('brighter_preload_use_og_image', 1); // Default to ON
-            
-            echo '<label style="display:block;margin-bottom:8px">';
-            echo '<input type="checkbox" name="brighter_preload_use_og_image" value="1" ' . checked(1, $use_og, false) . '> ';
-            echo 'Preload Featured OG 1200×630 image type for all selected singles';
-            echo '</label>';
-            
-            echo '<p class="description">If checked: Uses og-image (1200×630) size for preload. If unchecked: Uses original image size. <br><strong>Recommended:</strong> Keep enabled to match OG meta tags and improve consistency.</p>';
         }, 'brighter_tweaks', 'preload_on_singles');
         
         // Google Fonts Preload section
@@ -247,31 +284,17 @@ class Brighter_Tweaks {
         if (isset($_POST[self::OPT_THEME])) {
             update_option(self::OPT_THEME, self::sanitise_hex(wp_unslash($_POST[self::OPT_THEME])));
         }
-        if (isset($_POST[self::OPT_POST_TYPES]) && is_array($_POST[self::OPT_POST_TYPES])) {
-            $types = array_map('sanitize_text_field', $_POST[self::OPT_POST_TYPES]);
-            update_option(self::OPT_POST_TYPES, $types);
-        } else {
-            update_option(self::OPT_POST_TYPES, []);
-        }
-        
-        // Save WebP options
-        update_option('brighter_preload_webp_append', isset($_POST['brighter_preload_webp_append']) ? 1 : 0);
-        update_option('brighter_preload_webp_replace', isset($_POST['brighter_preload_webp_replace']) ? 1 : 0);
-        update_option('brighter_preload_use_og_image', isset($_POST['brighter_preload_use_og_image']) ? 1 : 0);
-        
-        // Save Google Fonts Preload
+
+        // NOTE: Post-type image sizes, WebP options, and Google Fonts Preload are owned by
+        // their own cards (submitted via options.php / the Settings API) and are intentionally
+        // NOT touched here. This form (Per-Page Preloads) no longer renders those fields, so
+        // resetting them here would wipe values saved from the other cards.
+
+        // Save Google Fonts Preload (only present on this form for the legacy, non-embedded
+        // standalone tweaks page where do_settings_sections() is still rendered).
         if (isset($_POST[self::OPT_GOOGLE_FONTS])) {
             $value = wp_unslash($_POST[self::OPT_GOOGLE_FONTS]);
-            $allowed_tags = [
-                'link' => [
-                    'rel' => true,
-                    'href' => true,
-                    'as' => true,
-                    'type' => true,
-                    'crossorigin' => true,
-                ]
-            ];
-            $sanitized = wp_kses($value, $allowed_tags);
+            $sanitized = self::sanitise_google_fonts_preload($value);
             update_option(self::OPT_GOOGLE_FONTS, $sanitized);
             if (self::DEBUG_SAVE) {
                 error_log('[Brighter_Tweaks] Google Fonts - Raw length: ' . strlen($value) . ', Sanitized length: ' . strlen($sanitized));
@@ -565,35 +588,26 @@ class Brighter_Tweaks {
     }
 
     /**
-     * Output featured image preload for singles
-     * Uses 'og-image' size (1200x630) for better OG compatibility
+     * Output featured image preload for singles.
+     * Preloads the registered image size chosen for the current post type
+     * (Site Essentials > Performance > Asset Preloading > Preload Featured Images on Singles).
      */
     public static function output_featured_image_preload() {
         if (!is_singular()) return;
-        
-        $enabled = (array) get_option(self::OPT_POST_TYPES, []);
+
         $post_type = get_post_type();
-        
-        if (!in_array($post_type, $enabled, true)) return;
+        $sizes_map = (array) get_option(self::OPT_POST_TYPE_SIZES, []);
+        $size = isset($sizes_map[$post_type]) ? $sizes_map[$post_type] : 'none';
+
+        if (empty($size) || $size === 'none') return;
         if (!has_post_thumbnail()) return;
-        
+
         $id = get_post_thumbnail_id();
-        
-        // Check if we should use og-image or original
-        $use_og_image = get_option('brighter_preload_use_og_image', 1);
-        
-        if ($use_og_image) {
-            // Try to use 'og-image' size first (1200x630), fallback to 'full'
-            $size = 'og-image';
-            $src = wp_get_attachment_image_url($id, $size);
-            
-            // If og-image doesn't exist, use full
-            if (!$src) {
-                $size = 'full';
-                $src = wp_get_attachment_image_url($id, $size);
-            }
-        } else {
-            // Use original/full size
+
+        $src = wp_get_attachment_image_url($id, $size);
+
+        // Fall back to full size if the chosen size doesn't exist for this image.
+        if (!$src) {
             $size = 'full';
             $src = wp_get_attachment_image_url($id, $size);
         }
@@ -859,6 +873,32 @@ class Brighter_Tweaks {
         if (preg_match('#^/[^ ]#', $u)) return esc_url_raw($u);
         $ok = filter_var($u, FILTER_VALIDATE_URL);
         return $ok ? esc_url_raw($u) : '';
+    }
+
+    public static function sanitise_post_type_sizes($input) {
+        $out = [];
+        if (!is_array($input)) return $out;
+
+        $valid_types = array_keys(get_post_types(['public' => true]));
+        foreach ($input as $type => $size) {
+            $type = sanitize_key($type);
+            if (!in_array($type, $valid_types, true)) continue;
+            $out[$type] = sanitize_key((string) $size) ?: 'none';
+        }
+        return $out;
+    }
+
+    public static function sanitise_google_fonts_preload($value) {
+        $allowed_tags = [
+            'link' => [
+                'rel' => true,
+                'href' => true,
+                'as' => true,
+                'type' => true,
+                'crossorigin' => true,
+            ],
+        ];
+        return wp_kses((string) $value, $allowed_tags);
     }
 
     public static function sanitise_hex($hex) {

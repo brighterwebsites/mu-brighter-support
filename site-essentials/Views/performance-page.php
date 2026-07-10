@@ -6,9 +6,13 @@
  *
  * @package    SiteEssentials
  * @subpackage Views
- * @version    2.1.0
+ * @version    2.2.0
  *
  * Changelog:
+ * 2.2.0 - Card 2 (Preload Featured Images on Singles) now renders a per-post-type registered
+ *         image size selector instead of the old global Post Types + Preload Image Size
+ *         controls. Card 1 preserves the new brighter_preload_post_type_sizes option instead
+ *         of the removed brighter_preload_post_types / brighter_preload_use_og_image options.
  * 2.1.0 - Preserve bw_preloads_map on Card 1/2 submit so options.php no longer wipes
  *         Per-Page Preloads data when saving Google Fonts or Featured Image settings.
  */
@@ -207,14 +211,13 @@ elseif ( $active_tab === 'asset-preloading' ) :
 				<?php settings_fields( 'brighter_tweaks' ); ?>
 				<?php
 				// Preserve other brighter_tweaks options so options.php does not overwrite them.
-				$pt = (array) get_option( 'brighter_preload_post_types', [] );
-				foreach ( $pt as $t ) {
-					echo '<input type="hidden" name="brighter_preload_post_types[]" value="' . esc_attr( $t ) . '">';
+				$_pt_sizes = (array) get_option( 'brighter_preload_post_type_sizes', [] );
+				foreach ( $_pt_sizes as $_type => $_size ) {
+					echo '<input type="hidden" name="brighter_preload_post_type_sizes[' . esc_attr( $_type ) . ']" value="' . esc_attr( $_size ) . '">';
 				}
 				?>
 				<input type="hidden" name="brighter_preload_webp_append"  value="<?php echo get_option( 'brighter_preload_webp_append', 0 ) ? '1' : '0'; ?>">
 				<input type="hidden" name="brighter_preload_webp_replace" value="<?php echo get_option( 'brighter_preload_webp_replace', 0 ) ? '1' : '0'; ?>">
-				<input type="hidden" name="brighter_preload_use_og_image" value="<?php echo get_option( 'brighter_preload_use_og_image', 1 ) ? '1' : '0'; ?>">
 				<input type="hidden" name="theme_colour"                   value="<?php echo esc_attr( get_option( 'theme_colour', '' ) ); ?>">
 				<?php
 				// Preserve Card 3 (Per-Page Preloads) map so options.php does not clear it on Card 1 submit.
