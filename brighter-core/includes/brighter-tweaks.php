@@ -3,9 +3,13 @@
  * Brighter Tools: Tweaks
  *
  * File: brighter-tweaks.php
- * Version: 4.3.1
+ * Version: 4.3.2
  *
  * Changelog:
+ * 4.3.2 - Fixed duplicate "Preload Featured Images on Singles" / "Google Fonts Preload"
+ *         fields bleeding into the "Per-Page Preloads" card when embedded in Site
+ *         Essentials > Performance. render_preload_form() now only calls
+ *         do_settings_sections() for the standalone (non-embedded) tweaks page.
  * 4.3.1 - MERGED: All features from v4.0.0 + v4.3.0, OG image size, Google Fonts removal fixed
  * 4.3.0 - FIXED: Preloads now working, pagination fixed, cleaned duplicate code
  * 4.0.0 - Initial version
@@ -370,9 +374,18 @@ class Brighter_Tweaks {
         <form method="<?php echo esc_attr($form_method); ?>" action="<?php echo esc_url($form_action); ?>" style="margin-top:20px;">
             <?php wp_nonce_field('bw_tweaks_save', 'bw_tweaks_nonce'); ?>
 
-            <?php do_settings_sections('brighter_tweaks'); ?>
-
-            <hr>
+            <?php
+            // When embedded in Site Essentials > Performance, the "Preload Featured Images
+            // on Singles" and "Google Fonts Preload" sections already have their own cards
+            // (with their own save forms) above this one. Rendering them again here via
+            // do_settings_sections() would duplicate those fields and, on submit, resubmit
+            // stale values back into this card's own form. Only render them when this form
+            // is the sole/standalone tweaks form (not embedded).
+            if (!$embed) {
+                do_settings_sections('brighter_tweaks');
+                echo '<hr>';
+            }
+            ?>
 
             <h2 class="title"><?php esc_html_e('Per-Page Preloads', 'brighterwebsites'); ?></h2>
             <p><?php esc_html_e('Enter one asset URL per line. These will be preloaded only on that page. Supports images, fonts, CSS and JS.', 'brighterwebsites'); ?></p>
