@@ -83,38 +83,10 @@ class Content_Inventory_Gatherer {
 		}
 
 		// ──────────────────────────────────────────────────────────────────────
-		// Step 2: Determine analysis prefix (scos_ca_ or legacy bw_)
+		// Step 2: Analysis prefix — scos_ca_ is the only canonical set
 		// ──────────────────────────────────────────────────────────────────────
 
 		$prefix = 'scos_ca_';
-
-		// Check first published post of first included type to detect legacy vs SCOS.
-		foreach ( $included as $pt ) {
-			$q = get_posts(
-				[
-					'post_type'       => $pt,
-					'post_status'     => 'publish',
-					'numberposts'     => 1,
-					'fields'          => 'ids',
-					'suppress_filters' => true,
-				]
-			);
-
-			if ( empty( $q ) ) {
-				continue;
-			}
-
-			$pid = $q[0];
-
-			if ( get_post_meta( $pid, 'scos_ca_last_analyzed', true ) ) {
-				$prefix = 'scos_ca_';
-			} elseif ( get_post_meta( $pid, 'bw_last_analyzed', true ) ) {
-				$prefix = 'bw_';
-			} else {
-				$prefix = 'scos_ca_';
-			}
-			break;
-		}
 
 		// ──────────────────────────────────────────────────────────────────────
 		// Step 3: Query posts with optional since filter

@@ -3,8 +3,7 @@
  * SEO Schema — Meta Box Controller
  *
  * Registers the "Schema" meta box and handles save.
- * bw_custom_schema dual-write removed — scos-schema-output.php now reads
- * scos_schema_custom first, falling back to bw_custom_schema for legacy data.
+ * bw_custom_schema dual-write and fallback read removed — scos_schema_custom is the only key.
  *
  * @package    SiteEssentials
  * @subpackage Modules\SeoSchema
@@ -12,6 +11,7 @@
  *
  * v1.0 | 2026-05-01
  * v1.1 | 2026-06-29 — Remove bw_custom_schema dual-write; scos-schema-output.php now reads scos_schema_custom first.
+ * v1.2 | 2026-07-15 — Remove bw_custom_schema fallback read; migration confirmed complete on all sites.
  */
 
 namespace SiteEssentials\Modules\SeoSchema;
@@ -69,11 +69,7 @@ class Meta_Box {
 	public static function render( $post ) {
 		wp_nonce_field( 'scos_schema_meta_box', 'scos_schema_nonce' );
 
-		// Primary key; fallback to legacy bw_custom_schema for posts not yet resaved
 		$custom_schema = get_post_meta( $post->ID, 'scos_schema_custom', true );
-		if ( empty( $custom_schema ) ) {
-			$custom_schema = get_post_meta( $post->ID, 'bw_custom_schema', true );
-		}
 
 		// Pretty-print existing JSON so it's readable in the textarea
 		if ( ! empty( $custom_schema ) ) {
@@ -107,7 +103,6 @@ class Meta_Box {
 
 		if ( empty( $raw ) ) {
 			delete_post_meta( $post_id, 'scos_schema_custom' );
-			delete_post_meta( $post_id, 'bw_custom_schema' );
 			return;
 		}
 

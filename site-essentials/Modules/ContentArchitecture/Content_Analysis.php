@@ -435,11 +435,8 @@ class Content_Analysis {
 		// module stays usable even if the FAQ submodule is off.
 		self::scan_breakdance_for_schema( $post_id, $types );
 
-		// ── 3. Custom schema post meta (scos_schema_custom primary; bw_custom_schema fallback) ──
+		// ── 3. Custom schema post meta ──
 		$custom_json = get_post_meta( $post_id, 'scos_schema_custom', true );
-		if ( empty( $custom_json ) ) {
-			$custom_json = get_post_meta( $post_id, 'bw_custom_schema', true ); // TODO: remove fallback once all sites resaved
-		}
 		if ( ! empty( $custom_json ) ) {
 			$decoded = json_decode( $custom_json, true );
 			if ( is_array( $decoded ) ) {

@@ -3,7 +3,7 @@
  * Content Analysis - Link Counting & Statistics
  *
  * File: class-content-analysis.php
- * Version: 1.4.0 | 2026-06-07
+ * Version: 1.5.0 | 2026-07-15
  *
  * Responsibilities:
  * - Count internal/external links (excluding header/footer/nav)
@@ -107,6 +107,9 @@ class BW_Content_Analysis {
      * capability / autosave / revision checks before scheduling.
      */
     public static function analyze_content($post_id, $post, $update) {
+        // ContentArchitecture module owns stats (scos_ca_* keys) — skip legacy bw_* writes.
+        if ( defined( 'SCOS_CA_ACTIVE' ) ) { return; }
+
         // Prevent revisions / autosave (cron-safe guards).
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
         if (wp_is_post_revision($post_id)) return;

@@ -4,16 +4,17 @@
  *
  * v1.3 | 2026-06-29 — Guard inline Service block against admin template; no duplicate schema.
  * v1.4 | 2026-06-29 — Read scos_seo_tldr + scos_schema_custom first; bw_ keys as fallback only.
+ * v1.5 | 2026-07-15 — Remove all bw_ fallback reads; migration confirmed complete on all sites.
  *
  * Outputs consolidated @graph schema for all page types.
  * Uses template_redirect to ensure WordPress conditionals work.
  *
  * Meta fields used:
- * - scos_schema_custom: Custom JSON-LD to merge into @graph (primary; bw_custom_schema read as fallback)
- * - scos_seo_tldr: TLDR/description text (primary; bw_tldr read as fallback)
- * - bw_breadcrumb_schema: Override breadcrumb label
- * - bw_custom_schema: Legacy key — fallback only; TODO: remove once all sites resaved
- * - bw_purpose: Detect service pages (value: 'service-page')
+ * - scos_schema_custom: Custom JSON-LD to merge into @graph
+ * - scos_seo_tldr: TLDR/description text
+ * - scos_seo_breadcrumb_title: Override breadcrumb label for current page
+ * - scos_ca_purpose: Detect service/product pages (value: 'service-page', 'product-page')
+ * - scos_ca_word_count, scos_ca_reading_time: Content metrics
  *
  * Kill Switch Controls:
  * - SCOS_DISABLE_SCHEMA: Set to true in wp-config.php to disable all schema output
@@ -705,36 +706,31 @@ function bw_render_schema_graph() {
         // Get TLDR for description (fallback to excerpt)
         $tldr = get_post_meta($post_id, 'scos_seo_tldr', true);
         if (empty($tldr)) {
-            $tldr = get_post_meta($post_id, 'bw_tldr', true); // TODO: remove fallback once all sites resaved
-        }
-        if (empty($tldr)) {
-            $tldr = get_post_meta($post_id, 'tldr', true); // ACF fallback
+            $tldr = get_post_meta($post_id, 'tldr', true); // pre-bw_ ACF fallback
         }
         $description = !empty($tldr) ? wp_strip_all_tags($tldr) : (get_the_excerpt() ?: wp_trim_words(get_the_content(), 30));
         
         // Get SEOPress meta title for alternativeHeadline
         $meta_title = get_post_meta($post_id, '_seopress_titles_title', true);
         
-        // Get primary topic for "about"
-        $topic_id = get_post_meta($post_id, 'bw_primary_topic_id', true);
+        // Get primary topic for "about" — scos_topic taxonomy is canonical
         $about = null;
-        if ($topic_id) {
-            $topic_term = get_term($topic_id, 'altc_topic');
-            if ($topic_term && !is_wp_error($topic_term)) {
-                $topic_sameas = get_term_meta($topic_id, 'topic_sameas_url', true);
-                $about = [
-                    "@type" => "Thing",
-                    "name" => $topic_term->name
-                ];
-                if (!empty($topic_term->description)) {
-                    $about["description"] = wp_strip_all_tags($topic_term->description);
-                }
-                if (!empty($topic_sameas)) {
-                    $about["sameAs"] = $topic_sameas;
-                }
+        $topic_terms = wp_get_post_terms( $post_id, 'scos_topic' );
+        if ( is_wp_error( $topic_terms ) || empty( $topic_terms ) ) {
+            $topic_terms = wp_get_post_terms( $post_id, 'altc_topic' ); // legacy taxonomy fallback
+        }
+        if ( ! is_wp_error( $topic_terms ) && ! empty( $topic_terms ) ) {
+            $topic_term   = $topic_terms[0];
+            $topic_sameas = get_term_meta( $topic_term->term_id, 'topic_sameas_url', true );
+            $about = [ "@type" => "Thing", "name" => $topic_term->name ];
+            if ( ! empty( $topic_term->description ) ) {
+                $about["description"] = wp_strip_all_tags( $topic_term->description );
+            }
+            if ( ! empty( $topic_sameas ) ) {
+                $about["sameAs"] = $topic_sameas;
             }
         }
-        
+
         // Build image object (prefer OG image size 1200x630)
         $image_obj = null;
         if (has_post_thumbnail($post_id)) {
@@ -761,9 +757,9 @@ function bw_render_schema_graph() {
         }
         
         // Get word count and reading time
-        $word_count = (int) get_post_meta($post_id, 'bw_word_count', true);
-        $reading_time = (int) get_post_meta($post_id, 'bw_reading_time', true);
-        
+        $word_count   = (int) get_post_meta( $post_id, 'scos_ca_word_count',   true );
+        $reading_time = (int) get_post_meta( $post_id, 'scos_ca_reading_time', true );
+
         // Build Article schema
         $article = [
             "@type" => "Article",
@@ -829,10 +825,7 @@ function bw_render_schema_graph() {
         // Get TLDR for description (fallback to excerpt)
         $tldr = get_post_meta($post_id, 'scos_seo_tldr', true);
         if (empty($tldr)) {
-            $tldr = get_post_meta($post_id, 'bw_tldr', true); // TODO: remove fallback once all sites resaved
-        }
-        if (empty($tldr)) {
-            $tldr = get_post_meta($post_id, 'tldr', true); // ACF fallback
+            $tldr = get_post_meta($post_id, 'tldr', true); // pre-bw_ ACF fallback
         }
         $description = !empty($tldr) ? wp_strip_all_tags($tldr) : (get_the_excerpt() ?: wp_trim_words(get_the_content(), 30));
         
@@ -840,29 +833,27 @@ function bw_render_schema_graph() {
         $meta_title = get_post_meta($post_id, '_seopress_titles_title', true);
         
         // Get word count and reading time
-        $word_count = (int) get_post_meta($post_id, 'bw_word_count', true);
-        $reading_time = (int) get_post_meta($post_id, 'bw_reading_time', true);
-        
-        // Get primary topic for "about"
-        $topic_id = get_post_meta($post_id, 'bw_primary_topic_id', true);
+        $word_count   = (int) get_post_meta( $post_id, 'scos_ca_word_count',   true );
+        $reading_time = (int) get_post_meta( $post_id, 'scos_ca_reading_time', true );
+
+        // Get primary topic for "about" — scos_topic taxonomy is canonical
         $about = null;
-        if ($topic_id) {
-            $topic_term = get_term($topic_id, 'altc_topic');
-            if ($topic_term && !is_wp_error($topic_term)) {
-                $topic_sameas = get_term_meta($topic_id, 'topic_sameas_url', true);
-                $about = [
-                    "@type" => "Thing",
-                    "name" => $topic_term->name
-                ];
-                if (!empty($topic_term->description)) {
-                    $about["description"] = wp_strip_all_tags($topic_term->description);
-                }
-                if (!empty($topic_sameas)) {
-                    $about["sameAs"] = $topic_sameas;
-                }
+        $topic_terms = wp_get_post_terms( $post_id, 'scos_topic' );
+        if ( is_wp_error( $topic_terms ) || empty( $topic_terms ) ) {
+            $topic_terms = wp_get_post_terms( $post_id, 'altc_topic' ); // legacy taxonomy fallback
+        }
+        if ( ! is_wp_error( $topic_terms ) && ! empty( $topic_terms ) ) {
+            $topic_term   = $topic_terms[0];
+            $topic_sameas = get_term_meta( $topic_term->term_id, 'topic_sameas_url', true );
+            $about = [ "@type" => "Thing", "name" => $topic_term->name ];
+            if ( ! empty( $topic_term->description ) ) {
+                $about["description"] = wp_strip_all_tags( $topic_term->description );
+            }
+            if ( ! empty( $topic_sameas ) ) {
+                $about["sameAs"] = $topic_sameas;
             }
         }
-        
+
         // Build image object
         $image_obj = null;
         if (has_post_thumbnail($post_id)) {
@@ -949,9 +940,8 @@ function bw_render_schema_graph() {
     // ============================================
     
     if (is_singular('page')) {
-        $purpose = get_post_meta($post_id, 'bw_purpose', true);
-        $has_custom_schema = !empty(get_post_meta($post_id, 'scos_schema_custom', true))
-                          || !empty(get_post_meta($post_id, 'bw_custom_schema', true)); // TODO: remove bw_ fallback once all sites resaved
+        $purpose = get_post_meta($post_id, 'scos_ca_purpose', true);
+        $has_custom_schema = !empty(get_post_meta($post_id, 'scos_schema_custom', true));
 
         // Skip inline Service generation if the admin template block below will handle this page.
         // That block fires when: purpose-auto is on, OR post ID is in the service IDs list.
@@ -966,7 +956,7 @@ function bw_render_schema_graph() {
         // Only auto-generate the fallback inline Service schema when no custom schema AND
         // the admin template block won't already output one for this page.
         if ($purpose === 'service-page' && !$has_custom_schema && !$template_will_handle) {
-            $description = get_post_meta($post_id, 'bw_service_description', true) ?: get_the_excerpt();
+            $description = get_the_excerpt();
           
             $graph[] = [
                 "@type" => "Service",
@@ -1020,7 +1010,7 @@ function bw_render_schema_graph() {
 
         // Content Architecture purpose: auto-apply when purpose = product-page
         if ( !$include_product && get_option('scos_site_schema_product_purpose_auto') ) {
-            $purpose = get_post_meta( $singular_id, 'scos_ca_purpose', true ) ?: get_post_meta( $singular_id, 'bw_purpose', true );
+            $purpose = get_post_meta( $singular_id, 'scos_ca_purpose', true );
             if ( $purpose === 'product-page' ) {
                 $include_product = true;
             }
@@ -1049,7 +1039,7 @@ function bw_render_schema_graph() {
 
         // Content Architecture purpose: auto-apply when purpose = service-page
         if ( !$include_service && get_option('scos_site_schema_service_purpose_auto') ) {
-            $purpose = get_post_meta( $singular_id, 'scos_ca_purpose', true ) ?: get_post_meta( $singular_id, 'bw_purpose', true );
+            $purpose = get_post_meta( $singular_id, 'scos_ca_purpose', true );
             if ( $purpose === 'service-page' ) {
                 $include_service = true;
             }
@@ -1155,7 +1145,7 @@ function bw_render_schema_graph() {
         }
         
         // Current page - check for breadcrumb override
-        $breadcrumb_override = get_post_meta($post_id, 'bw_breadcrumb_schema', true);
+        $breadcrumb_override = get_post_meta($post_id, 'scos_seo_breadcrumb_title', true);
         $current_name = !empty($breadcrumb_override) ? $breadcrumb_override : get_the_title();
         
         $breadcrumbs[] = [
@@ -1178,9 +1168,6 @@ function bw_render_schema_graph() {
     
     if (is_singular() && $post_id) {
         $custom_schema = get_post_meta($post_id, 'scos_schema_custom', true);
-        if (empty($custom_schema)) {
-            $custom_schema = get_post_meta($post_id, 'bw_custom_schema', true); // TODO: remove fallback once all sites resaved
-        }
         
         if (!empty($custom_schema)) {
             $decoded = json_decode(bw_schema_normalize_json_placeholders($custom_schema), true);

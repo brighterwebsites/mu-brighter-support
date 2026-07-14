@@ -4,13 +4,14 @@
  *
  * Single source of truth for resolving a post's Search Intent Goal.
  * Supports dual-mode: FAQ post link (scos_ca_intent_goal_faq_id) first,
- * falling back to freetext (scos_ca_intent_goal / bw_altc_notes).
+ * falling back to freetext (scos_ca_intent_goal).
  *
  * Also owns stub FAQ creation and incomplete-FAQ detection so that
  * Meta_Box, Admin_Columns, REST, CAR injection, and WP-CLI/MCP
  * all read from one place.
  *
  * v1.1 | 2026-05-25 — create_stub_faq now sets scos_faq_is_intent_goal on the new FAQ.
+ * v1.2 | 2026-07-15 — Remove bw_search_intent / bw_altc_notes fallbacks; migration complete.
  *
  * @package    SiteEssentials
  * @subpackage Modules\ContentArchitecture
@@ -44,7 +45,6 @@ class Intent_Goal_Resolver {
 	 * Resolve order:
 	 *   1. FAQ post title (when scos_ca_intent_goal_faq_id is set and FAQ exists)
 	 *   2. scos_ca_intent_goal (freetext)
-	 *   3. Legacy bw_search_intent → bw_altc_notes
 	 *
 	 * @param int $post_id Post ID.
 	 * @return string Question text, or empty string.
@@ -58,17 +58,7 @@ class Intent_Goal_Resolver {
 			}
 		}
 
-		$goal = (string) get_post_meta( $post_id, 'scos_ca_intent_goal', true );
-		if ( '' !== $goal ) {
-			return $goal;
-		}
-
-		$legacy = (string) get_post_meta( $post_id, 'bw_search_intent', true );
-		if ( '' !== $legacy ) {
-			return $legacy;
-		}
-
-		return (string) get_post_meta( $post_id, 'bw_altc_notes', true );
+		return (string) get_post_meta( $post_id, 'scos_ca_intent_goal', true );
 	}
 
 	// =========================================================================
