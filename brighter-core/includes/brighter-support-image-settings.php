@@ -3,9 +3,10 @@
  * Brighter Tools: Image Optimisation Settings (Admin UI)
  * 
  * File: brighter-support-image-settings.php
- * Version: 4.1.0
+ * Version: 4.2.0
  *
  * Changelog:
+ * 4.2.0 - Expose social-square (1080x1080) toggle in Manage Image Thumbnails & Sizes
  * 4.1.0 - Performance: Batch load settings, cache registered sizes, reduce queries
  * 4.0.0 - Initial release
  *
@@ -82,6 +83,7 @@ function brighter_get_image_sizes_config() {
         'custom_768w'   => [768, 0, false, 'Custom 768w'],
         'custom_1200w'  => [1200, 0, false, 'Custom 1200w'],
         'og-image'      => [1200, 630, true, 'Open Graph (1200x630)'],
+        'social-square' => [1080, 1080, true, 'Social Square (1080x1080)'],
         '1536x1536'     => [1536, 1536, false, '1536x1536'],
         '2048x2048'     => [2048, 2048, false, '2048x2048'],
     ];

@@ -17,6 +17,7 @@
  *
  * @package    SiteEssentials
  * @subpackage Modules\SocialAmplification\Amplification
+ * v1.3 | 2026-07-02
  */
 
 namespace SiteEssentials\Modules\SocialAmplification\Amplification;
@@ -339,44 +340,54 @@ class Amplification_Engine {
 			$schedule_dt = $now->modify( '+60 minutes' );
 		}
 
-		$image_url  = self::get_featured_og_image( $post_id );
-		$shortlink  = $context['shortlink'] ?? '';
-		$permalink  = $context['permalink'] ?? '';
-		$gmb_caption = Anthropic_Client::generate_gmb_caption( $context );
-		$cta_url     = self::build_cta_url( $permalink, $shortlink );
+		$source_image = self::get_featured_og_image( $post_id );
+		$permalink    = $context['permalink'] ?? '';
+		$gmb_caption  = Anthropic_Client::generate_gmb_caption( $context );
+		// GMB CTA always uses the permalink (never YOURLS shortlink).
+		$cta_url      = self::build_cta_url( $permalink, '' );
 
-		$post_results = [];
-		for ( $i = 0; $i < (int) $config['count']; $i++ ) {
+		$image_url = '';
+		if ( $source_image !== '' ) {
 			try {
-				$result = $client->create_gmb_post( [
-					'gmb_caption'    => $gmb_caption,
-					'cta_url'        => $cta_url,
-					'image_url'      => $image_url,
-					'schedule_at'    => $schedule_dt,
-					'timezone'       => $timezone,
-					'gmb_channel_id' => $gmb_channel_id,
-				] );
-
-				$postly_id = $result['_id'] ?? ( $result['id'] ?? null );
-				$post_results[] = [
-					'platform'  => 'gmb',
-					'slot'      => 1,
-					'scheduled' => $schedule_dt->format( 'Y-m-d H:i' ),
-					'status'    => 'scheduled',
-					'postly_id' => $postly_id,
-					'images'    => $image_url ? 1 : 0,
-				];
+				$file_name = basename( (string) wp_parse_url( $source_image, PHP_URL_PATH ) ) ?: 'gmb-image.jpg';
+				$image_url = $client->upload_image( $source_image, $file_name );
+				error_log( self::LOG_PREFIX . ' GMB image uploaded to Postly CDN: ' . $image_url );
 			} catch ( \RuntimeException $e ) {
-				error_log( self::LOG_PREFIX . ' GMB call failed: ' . $e->getMessage() );
-				$post_results[] = [
-					'platform'  => 'gmb',
-					'slot'      => 1,
-					'scheduled' => $schedule_dt->format( 'Y-m-d H:i' ),
-					'status'    => 'error',
-					'error'     => $e->getMessage(),
-					'images'    => $image_url ? 1 : 0,
-				];
+				error_log( self::LOG_PREFIX . ' GMB image upload failed (continuing without image): ' . $e->getMessage() );
 			}
+		}
+
+		// GMB is always one post per amplification run (no multi-slot schedule like standard).
+		$post_results = [];
+		try {
+			$result = $client->create_gmb_post( [
+				'gmb_caption'    => $gmb_caption,
+				'cta_url'        => $cta_url,
+				'image_url'      => $image_url,
+				'schedule_at'    => $schedule_dt,
+				'timezone'       => $timezone,
+				'gmb_channel_id' => $gmb_channel_id,
+			] );
+
+			$postly_id = $result['_id'] ?? ( $result['id'] ?? null );
+			$post_results[] = [
+				'platform'  => 'gmb',
+				'slot'      => 1,
+				'scheduled' => $schedule_dt->format( 'Y-m-d H:i' ),
+				'status'    => 'scheduled',
+				'postly_id' => $postly_id,
+				'images'    => $image_url ? 1 : 0,
+			];
+		} catch ( \RuntimeException $e ) {
+			error_log( self::LOG_PREFIX . ' GMB call failed: ' . $e->getMessage() );
+			$post_results[] = [
+				'platform'  => 'gmb',
+				'slot'      => 1,
+				'scheduled' => $schedule_dt->format( 'Y-m-d H:i' ),
+				'status'    => 'error',
+				'error'     => $e->getMessage(),
+				'images'    => $image_url ? 1 : 0,
+			];
 		}
 
 		return $post_results;

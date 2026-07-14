@@ -11,6 +11,7 @@
  *
  * @package    SiteEssentials
  * @subpackage Modules\SocialAmplification\Amplification
+ * v1.1 | 2026-07-02
  */
 
 namespace SiteEssentials\Modules\SocialAmplification\Amplification;
@@ -141,18 +142,25 @@ class Postly_Client {
 		$gmb_channel_id = (string) ( $params['gmb_channel_id'] ?? '' );
 		$schedule       = $params['schedule_at'] ?? null;
 
+		// Postly stores GMB fields under platform_posts[].settings (not flat platform_settings).
+		// Verified via GET /posts/{id} on a UI-created golden post vs API-created post.
+		$gmb_settings = [
+			'identifier'         => 'googleMyBusiness',
+			'type'               => 'update',
+			'language_code'      => 'en-AU',
+			'summary'            => $caption,
+			'call_to_action'     => 'learn_more',
+			'call_to_action_url' => $cta_url,
+		];
+
 		$body = [
-			'text'              => '',
-			'workspace'         => $this->workspace_id,
-			'target_platforms'  => $gmb_channel_id,
-			'platform_settings' => [
+			'text'             => '',
+			'workspace'        => $this->workspace_id,
+			'target_platforms' => $gmb_channel_id,
+			'platform_posts'   => [
 				[
-					'identifier'         => 'googleMyBusiness',
-					'type'               => 'update',
-					'language_code'      => 'en-AU',
-					'summary'            => $caption,
-					'call_to_action'     => 'learn_more',
-					'call_to_action_url' => $cta_url,
+					'identifier' => 'googleMyBusiness',
+					'settings'   => $gmb_settings,
 				],
 			],
 		];
@@ -161,7 +169,7 @@ class Postly_Client {
 			$body['media'] = [
 				[
 					'url'  => $image_url,
-					'type' => 'image/jpeg',
+					'type' => 'image/*',
 				],
 			];
 		}
