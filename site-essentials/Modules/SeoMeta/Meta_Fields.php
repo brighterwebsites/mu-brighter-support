@@ -6,6 +6,9 @@
  * @subpackage Modules\SeoMeta
  * @since      1.0.0
  * v1.2 | 2026-06-04
+ * v1.3 | 2026-07-17 — scos_seo_tldr sanitize_callback: sanitize_textarea_field →
+ *                      wp_kses_post, to match Meta_Box::save()'s own sanitizer now
+ *                      that the field supports bold/lists via wp_editor().
  */
 
 namespace SiteEssentials\Modules\SeoMeta;
@@ -32,9 +35,13 @@ class Meta_Fields {
 		$textarea = array_merge( $string, [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
 		$url      = array_merge( $string, [ 'sanitize_callback' => 'esc_url_raw' ] );
 
+		// TLDR allows a small set of HTML tags (bold, lists, links) via wp_editor() —
+		// must match Meta_Box::save()'s wp_kses_post() sanitizer, not the plain-text one.
+		$tldr_field = array_merge( $string, [ 'sanitize_callback' => 'wp_kses_post' ] );
+
 		// Core SEO
 		register_post_meta( '', 'scos_seo_breadcrumb_title', $string );
-		register_post_meta( '', 'scos_seo_tldr',             $textarea );
+		register_post_meta( '', 'scos_seo_tldr',             $tldr_field );
 		register_post_meta( '', 'scos_seo_title',            $string );
 		register_post_meta( '', 'scos_seo_description',      $textarea );
 
