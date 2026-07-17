@@ -17,6 +17,10 @@
  *   $global_freeze_date        bool   — site-wide freeze option
  *
  * @package SiteEssentials
+ *
+ * v1.0 | 2026-06-24
+ * v1.1 | 2026-07-17 — TLDR field switched from plain textarea to a teeny
+ *                      wp_editor() instance (bold/lists/link, no images).
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -76,9 +80,31 @@ defined( 'ABSPATH' ) || exit;
 				</button>
 				<?php endif; ?>
 			</label>
-			<textarea name="scos_seo_tldr" id="scos_seo_tldr" rows="3"
-				placeholder="<?php esc_attr_e( 'Brief 1–3 sentence summary used for voice search, social sharing, and the [tldr] shortcode…', 'site-essentials' ); ?>"><?php echo esc_textarea( $tldr ); ?></textarea>
-			<p class="scos-seo-help"><?php esc_html_e( 'Shown via [tldr] shortcode. Also used for Google Speakable.', 'site-essentials' ); ?></p>
+			<div class="scos-seo-tldr-editor">
+				<?php
+				wp_editor(
+					$tldr,
+					'scos_seo_tldr',
+					[
+						'textarea_name'    => 'scos_seo_tldr',
+						'textarea_rows'    => 4,
+						'teeny'            => true,
+						'media_buttons'    => false,
+						'drag_drop_upload' => false,
+						'quicktags'        => false,
+						'tinymce'          => [
+							'toolbar1'          => 'bold,italic,bullist,numlist,link,unlink,undo,redo',
+							'toolbar2'          => '',
+							'statusbar'         => false,
+							'resize'            => false,
+							'wpautop'           => true,
+							'menubar'           => false,
+						],
+					]
+				);
+				?>
+			</div>
+			<p class="scos-seo-help"><?php esc_html_e( 'Bold and lists are supported (no images). Shown via [tldr] shortcode. Also used for Google Speakable.', 'site-essentials' ); ?></p>
 		</div>
 
 		<!-- Meta Title -->

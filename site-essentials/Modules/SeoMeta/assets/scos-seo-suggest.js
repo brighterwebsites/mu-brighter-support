@@ -19,6 +19,8 @@
  *     → pick-to-fill sets #scos_seo_tldr
  *
  * v1.0 | 2026-06-24
+ * v1.1 | 2026-07-17 — fillField() now syncs via the TinyMCE API when the target is
+ *                      a wp_editor() instance (scos_seo_tldr switched from textarea).
  */
 
 ( function () {
@@ -77,6 +79,17 @@
 	// -------------------------------------------------------------------------
 
 	function fillField( id, value ) {
+		// scos_seo_tldr is a TinyMCE (wp_editor teeny) instance — its visible content
+		// lives in the TinyMCE iframe, not the underlying textarea's .value, so it
+		// needs to be set (and marked dirty/saved) through the TinyMCE API instead.
+		var editor = window.tinymce && window.tinymce.get ? window.tinymce.get( id ) : null;
+		if ( editor && ! editor.isHidden() ) {
+			editor.setContent( value );
+			editor.save(); // sync back to the underlying textarea before submit
+			editor.fire( 'change' );
+			return;
+		}
+
 		var el = document.getElementById( id );
 		if ( ! el ) return;
 		el.value = value;

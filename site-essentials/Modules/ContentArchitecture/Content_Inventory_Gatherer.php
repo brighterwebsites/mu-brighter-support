@@ -8,6 +8,8 @@
  * Performance: One server-side pass with batch meta loading, no N+1 queries.
  *
  * v1.0 | 2026-06-06
+ * v1.1 | 2026-07-17 — Strip HTML from scos_seo_tldr export (field now supports
+ *                      bold/lists/links via wp_editor(); baseline reports expect plain text).
  *
  * @package    SiteEssentials
  * @subpackage Modules\ContentArchitecture
@@ -276,7 +278,7 @@ class Content_Inventory_Gatherer {
 				// SEO Meta
 				'scos_seo_title'               => $nn( get_post_meta( $pid, 'scos_seo_title', true ) ),
 				'scos_seo_description'         => $nn( get_post_meta( $pid, 'scos_seo_description', true ) ),
-				'scos_seo_tldr'                => $nn( get_post_meta( $pid, 'scos_seo_tldr', true ) ),
+				'scos_seo_tldr'                => $nn( wp_strip_all_tags( (string) get_post_meta( $pid, 'scos_seo_tldr', true ) ) ),
 				'scos_seo_robots'              => $nn( get_post_meta( $pid, 'scos_seo_robots', true ) ),
 				'scos_seo_canonical'           => $nn( get_post_meta( $pid, 'scos_seo_canonical', true ) ),
 				'scos_seo_breadcrumb_title'    => $nn( get_post_meta( $pid, 'scos_seo_breadcrumb_title', true ) ),

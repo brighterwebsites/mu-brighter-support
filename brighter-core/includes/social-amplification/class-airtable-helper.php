@@ -11,6 +11,8 @@
  *
  * v1.0 | original
  * v1.1 | 2026-06-29 — Read scos_seo_tldr + scos_sa_shortlink_slug first; bw_ keys as fallback only.
+ * v1.2 | 2026-07-17 — Strip HTML from TLDR before sending to Airtable (field now supports
+ *                      bold/lists/links via wp_editor()).
  */
 
 if (!defined('ABSPATH')) exit;
@@ -341,9 +343,12 @@ class BW_Airtable_Helper {
             // Taxonomy/Category
             'Category' => wp_get_post_categories($post_id, array('fields' => 'names'))[0] ?? '',
             
-            // Content fields
-            'TLDR' => get_post_meta($post_id, 'scos_seo_tldr', true)
-                   ?: get_post_meta($post_id, 'bw_tldr', true), // TODO: remove bw_ fallback once all sites resaved
+            // Content fields — TLDR may contain basic HTML (bold/lists/links) since it's
+            // edited via a rich-text field; Airtable's TLDR column is plain text, so strip tags.
+            'TLDR' => wp_strip_all_tags(
+                (string) ( get_post_meta($post_id, 'scos_seo_tldr', true)
+                    ?: get_post_meta($post_id, 'bw_tldr', true) ) // TODO: remove bw_ fallback once all sites resaved
+            ),
             'Excerpt' => $post->post_excerpt ?: wp_trim_words($post->post_content, 55, '...'),
             
             // ALTC Strategy fields - Linked Record when we have Airtable record IDs

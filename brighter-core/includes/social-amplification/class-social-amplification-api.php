@@ -10,6 +10,8 @@
  *
  * v1.0 | original
  * v1.1 | 2026-06-29 — Read scos_seo_tldr + scos_sa_shortlink_slug first; bw_ keys as fallback only.
+ * v1.2 | 2026-07-17 — Strip HTML from TLDR reads (field now supports bold/lists/links
+ *                      via wp_editor(); this data feeds plain-text AI prompts/captions).
  */
 
 if (!defined('ABSPATH')) exit;
@@ -290,7 +292,9 @@ class BW_Social_Amplification_API {
         $content_type = BW_Content_Type_Helper::get_content_type($post_id, $post->post_type);
         $purpose = get_post_meta($post_id, 'scos_ca_purpose', true) ?: get_post_meta($post_id, 'bw_purpose', true) ?: '';
         $intent  = get_post_meta($post_id, 'scos_ca_intent',  true) ?: get_post_meta($post_id, 'bw_intent',  true) ?: '';
-        $tldr    = get_post_meta($post_id, 'scos_seo_tldr', true);
+        // TLDR may contain basic HTML (bold/lists/links) via wp_editor() — strip tags
+        // since this feeds AI prompts and social captions that expect plain text.
+        $tldr    = wp_strip_all_tags((string) get_post_meta($post_id, 'scos_seo_tldr', true));
         if (empty($tldr)) {
             $tldr = get_post_meta($post_id, 'bw_tldr', true); // TODO: remove fallback once all sites resaved
         }
@@ -552,8 +556,9 @@ class BW_Social_Amplification_API {
             return new WP_Error('invalid_post', 'Post not found', array('status' => 404));
         }
 
-        // Get post context
-        $tldr = get_post_meta($post_id, 'scos_seo_tldr', true);
+        // Get post context — strip tags: TLDR may contain basic HTML (bold/lists/links)
+        // via wp_editor(), but this feeds a plain-text prompt context.
+        $tldr = wp_strip_all_tags((string) get_post_meta($post_id, 'scos_seo_tldr', true));
         if (empty($tldr)) {
             $tldr = get_post_meta($post_id, 'bw_tldr', true); // TODO: remove fallback once all sites resaved
         }

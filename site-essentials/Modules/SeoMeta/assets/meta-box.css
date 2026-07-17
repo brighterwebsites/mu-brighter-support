@@ -140,6 +140,16 @@
 	color: #646970;
 }
 
+/* ── TLDR rich-text editor (teeny wp_editor) ── */
+.scos-seo-tldr-editor,
+.scos-seo-tldr-editor .wp-editor-wrap,
+.scos-seo-tldr-editor .wp-editor-container {
+	width: 100%;
+}
+.scos-seo-tldr-editor .mce-toolbar-grp {
+	background: #f6f7f7;
+}
+
 /* ── Label row (TLDR label + inline button) ── */
 .scos-seo-label-row {
 	display: flex;
