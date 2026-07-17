@@ -28,11 +28,8 @@ add_shortcode('tldr', function($atts) {
         return '';
     }
     
-    // Get TLDR content — prefer canonical scos_seo_tldr, fall back to legacy keys
+    // Get TLDR content — scos_seo_tldr is canonical; bare 'tldr' is a pre-bw_ legacy fallback
     $tldr = get_post_meta($post_id, 'scos_seo_tldr', true);
-    if (empty($tldr)) {
-        $tldr = get_post_meta($post_id, 'bw_tldr', true);
-    }
     if (empty($tldr)) {
         $tldr = get_post_meta($post_id, 'tldr', true);
     }

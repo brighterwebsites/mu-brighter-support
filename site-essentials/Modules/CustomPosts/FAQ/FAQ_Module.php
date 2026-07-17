@@ -514,8 +514,7 @@ class FAQ_Module {
 		$is_intent_goal = '1' === (string) get_post_meta( $post->ID, self::META_IS_INTENT_GOAL, true );
 
 		// TLDR for pre-fill (SEO module field)
-		$tldr = get_post_meta( $post->ID, 'scos_seo_tldr', true )
-			?: get_post_meta( $post->ID, 'bw_tldr', true );
+		$tldr = get_post_meta( $post->ID, 'scos_seo_tldr', true );
 		?>
 
 		<p class="description" style="margin-bottom:10px;">

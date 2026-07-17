@@ -7,7 +7,7 @@
  *
  * @package    SiteEssentials
  * @subpackage Modules\Seo
- * @version    1.5 | 2026-07-02
+ * @version    1.6 | 2026-07-15
  * @since      1.0.0
  */
 
@@ -150,9 +150,6 @@ class Seo_Module implements Module_Interface {
             add_action('admin_init', [$this, 'handle_dismiss_notice']);
             add_action('wp_ajax_se_dismiss_seo_notice', [$this, 'ajax_dismiss_notice']);
             
-            // Initialize Schema Meta Box for post/page editors
-            require_once __DIR__ . '/Schema_Meta_Box.php';
-            Schema_Meta_Box::init();
         }
 
         // Former "SEO Meta" module: meta box, head output, archive SEO UI, image SEO, virtual files, redirections.

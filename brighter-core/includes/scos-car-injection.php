@@ -3,8 +3,8 @@
  * SCOS Content Architecture Record (CAR) Injection
  *
  * Outputs window.brighterSCOS into <head> on every page.
- * Reads from new scos_ca_* meta keys / scos_* taxonomies first,
- * falling back to legacy bw_* keys for posts not yet migrated.
+ * Reads from scos_ca_* meta keys and scos_* taxonomies.
+ * altc_strategic_lens / altc_topic taxonomy fallbacks retained (term relationships still valid).
  *
  * Structure:
  *   car     — semantic intent, topical authority, metrics
@@ -21,6 +21,8 @@
  * v1.2 | 2026-06-24 — restructured CAR keys: cluster → known-for-goal (title + description),
  *                      maturity → topic-maturity, search-intent → answers, pillar removed,
  *                      service_pathway (id/title) → commercial-end-target (url/title).
+ * v1.3 | 2026-07-15 — Remove all bw_* meta-key fallbacks; migration confirmed complete.
+ *                      altc_strategic_lens and altc_topic taxonomy fallbacks retained (term data still valid).
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -90,21 +92,11 @@ add_action( 'wp_head', function () {
 		$cluster_name        = $cluster_terms[0]->name;
 		$cluster_description = $cluster_terms[0]->description ?: 'not_set';
 	} else {
-		// Legacy fallback
-		$legacy_altc_id = get_post_meta( $post_id, 'bw_primary_altc_id', true );
-		if ( $legacy_altc_id ) {
-			$t = get_term( $legacy_altc_id, 'altc_strategic_lens' );
-			if ( $t && ! is_wp_error( $t ) ) {
-				$cluster_name        = $t->name;
-				$cluster_description = $t->description ?: 'not_set';
-			}
-		}
-		if ( $cluster_name === 'not_set' ) {
-			$legacy_terms = wp_get_post_terms( $post_id, 'altc_strategic_lens' );
-			if ( ! is_wp_error( $legacy_terms ) && ! empty( $legacy_terms ) ) {
-				$cluster_name        = $legacy_terms[0]->name;
-				$cluster_description = $legacy_terms[0]->description ?: 'not_set';
-			}
+		// Taxonomy-based legacy fallback (altc_strategic_lens term relationships are still valid)
+		$legacy_terms = wp_get_post_terms( $post_id, 'altc_strategic_lens' );
+		if ( ! is_wp_error( $legacy_terms ) && ! empty( $legacy_terms ) ) {
+			$cluster_name        = $legacy_terms[0]->name;
+			$cluster_description = $legacy_terms[0]->description ?: 'not_set';
 		}
 	}
 
@@ -114,28 +106,16 @@ add_action( 'wp_head', function () {
 	if ( ! is_wp_error( $topic_terms ) && ! empty( $topic_terms ) ) {
 		$topic_name = $topic_terms[0];
 	} else {
-		$legacy_topic_id = get_post_meta( $post_id, 'bw_primary_topic_id', true );
-		if ( $legacy_topic_id ) {
-			$t = get_term( $legacy_topic_id, 'altc_topic' );
-			if ( $t && ! is_wp_error( $t ) ) { $topic_name = $t->name; }
-		}
-		if ( $topic_name === 'not_set' ) {
-			$legacy_terms = wp_get_post_terms( $post_id, 'altc_topic', [ 'fields' => 'names' ] );
-			if ( ! is_wp_error( $legacy_terms ) && ! empty( $legacy_terms ) ) {
-				$topic_name = $legacy_terms[0];
-			}
-		}
-		// Final fallback: old free-text field
-		if ( $topic_name === 'not_set' ) {
-			$old = get_post_meta( $post_id, 'bw_page_topic', true );
-			if ( $old ) { $topic_name = $old; }
+		// Taxonomy-based legacy fallback (altc_topic term relationships are still valid)
+		$legacy_terms = wp_get_post_terms( $post_id, 'altc_topic', [ 'fields' => 'names' ] );
+		if ( ! is_wp_error( $legacy_terms ) && ! empty( $legacy_terms ) ) {
+			$topic_name = $legacy_terms[0];
 		}
 	}
 
 	// ── Commercial end target (formerly service_pathway) ─────────────────────
 	$commercial_end_target = null;
-	$service_pathway_id    = (int) get_post_meta( $post_id, 'scos_ca_service_pathway_id', true )
-	                      ?: (int) get_post_meta( $post_id, 'bw_service_pathway_id', true );
+	$service_pathway_id = (int) get_post_meta( $post_id, 'scos_ca_service_pathway_id', true );
 	if ( $service_pathway_id > 0 ) {
 		$commercial_end_target = [
 			'url'   => get_permalink( $service_pathway_id ),
@@ -145,28 +125,23 @@ add_action( 'wp_head', function () {
 
 	// ── Content metrics ───────────────────────────────────────────────────────
 	$metrics = [
-		'word_count'     => (int) ( get_post_meta( $post_id, 'scos_ca_word_count', true )
-		                         ?: get_post_meta( $post_id, 'bw_word_count', true ) ),
-		'reading_time'   => (int) ( get_post_meta( $post_id, 'scos_ca_reading_time', true )
-		                         ?: get_post_meta( $post_id, 'bw_reading_time', true ) ),
-		'internal_links' => (int) ( get_post_meta( $post_id, 'scos_ca_links_to_internal', true )
-		                         ?: get_post_meta( $post_id, 'bw_internal_link_count', true ) ),
-		'external_links' => (int) ( get_post_meta( $post_id, 'scos_ca_links_to_external', true )
-		                         ?: get_post_meta( $post_id, 'bw_external_link_count', true ) ),
+		'word_count'     => (int) get_post_meta( $post_id, 'scos_ca_word_count',        true ),
+		'reading_time'   => (int) get_post_meta( $post_id, 'scos_ca_reading_time',      true ),
+		'internal_links' => (int) get_post_meta( $post_id, 'scos_ca_links_to_internal', true ),
+		'external_links' => (int) get_post_meta( $post_id, 'scos_ca_links_to_external', true ),
 		'last_updated'   => get_the_modified_date( 'Y-m-d', $post_id ),
 	];
 
 	// ── Assemble CAR ─────────────────────────────────────────────────────────
 	// ── Search intent resolution ─────────────────────────────────────────────
 	// Use Intent_Goal_Resolver when available (site-essentials CA module active).
-	// Falls back to the existing $val() pattern (scos_ca_intent_goal → bw_search_intent).
 	if ( class_exists( 'SiteEssentials\\Modules\\ContentArchitecture\\Intent_Goal_Resolver' ) ) {
 		$search_intent = SiteEssentials\Modules\ContentArchitecture\Intent_Goal_Resolver::resolve_question( $post_id );
 		if ( '' === $search_intent ) {
 			$search_intent = 'not_set';
 		}
 	} else {
-		$search_intent = $val( 'scos_ca_intent_goal', 'bw_search_intent' );
+		$search_intent = $val( 'scos_ca_intent_goal' );
 	}
 
 	$scos = [
@@ -176,10 +151,10 @@ add_action( 'wp_head', function () {
 				'description' => $cluster_description,
 			],
 			'topic'                 => $topic_name,
-			'topic-maturity'        => $val( 'scos_ca_maturity', 'bw_cont_maturity' ),
-			'intent'                => $val( 'scos_ca_intent',   'bw_intent' ),
-			'answers'               => $search_intent,
-			'purpose'               => $val( 'scos_ca_purpose',  'bw_purpose' ),
+		'topic-maturity'        => $val( 'scos_ca_maturity' ),
+		'intent'                => $val( 'scos_ca_intent' ),
+		'answers'               => $search_intent,
+		'purpose'               => $val( 'scos_ca_purpose' ),
 			'commercial-end-target' => $commercial_end_target,
 			'metrics'               => $metrics,
 		],

@@ -83,9 +83,10 @@ function brighter_get_whitelisted_modules() {
             //   class-tldr-meta-box
 
             // ── Content Analysis ─────────────────────────────────────────────
-            // class-content-analysis: keep — BW_Content_Analysis class and save_post
-            //   hooks still write bw_* stats that scos CA module reads via
-            //   BW_Content_Analysis::get_aggregated_content().
+            // class-content-analysis: keep — BW_Content_Analysis::get_aggregated_content()
+            //   still used by Social Amplification for raw content extraction.
+            //   analyze_content() is gated by SCOS_CA_ACTIVE and is a no-op on all
+            //   sites running ContentArchitecture module; bw_* stat writes are retired.
             'class-content-analysis',
             'class-content-analysis-seeder',
             'class-content-stats-page',
@@ -208,7 +209,8 @@ function brighter_load_modules() {
         'class-altc-taxonomies',
 
         // ── Content Analysis ──────────────────────────────────────────────────
-        // Keep: BW_Content_Analysis class still used by site-essentials CA module
+        // Keep: BW_Content_Analysis::get_aggregated_content() used by Social Amplification.
+        //   analyze_content() is gated (SCOS_CA_ACTIVE) — bw_* stat writes are retired.
         'class-content-analysis',
         'class-content-analysis-seeder',
         'class-content-stats-page',

@@ -12,10 +12,9 @@
  *      scos_seo_robots (noindex) → _seopress_robots_index = 'yes' | 'no'
  *      scos_seo_breadcrumb_title → _seopress_robots_breadcrumbs
  *
- *  - bw_tldr dual-write removed — all consumers now read scos_seo_tldr first
+ *  - bw_tldr dual-write removed — all consumers read scos_seo_tldr only
  *
- * Reads existing legacy values as fallback so posts not yet resaved still
- * show their current effective SEO values in the metabox.
+ * Reads existing scos_seo_* values; bw_ legacy fallbacks removed (migration confirmed complete).
  *
  * @package    SiteEssentials
  * @subpackage Modules\SeoMeta
@@ -26,6 +25,7 @@
  *                      scos-seo-suggest.js and ScosSeoSuggest localization data.
  * v1.2 | 2026-06-29 — Remove bw_tldr dual-write; consumers now read scos_seo_tldr first.
  * v1.3 | 2026-07-01 — Register scos-media ability category; load Fill_Image_Meta ability.
+ * v1.4 | 2026-07-15 — Remove bw_tldr fallback read; migration confirmed complete on all sites.
  */
 
 namespace SiteEssentials\Modules\SeoMeta;
@@ -115,9 +115,6 @@ class Meta_Box {
 		}
 
 		$tldr = get_post_meta( $post->ID, 'scos_seo_tldr', true );
-		if ( empty( $tldr ) ) {
-			$tldr = get_post_meta( $post->ID, 'bw_tldr', true );
-		}
 
 		$title = get_post_meta( $post->ID, 'scos_seo_title', true );
 		if ( empty( $title ) ) {
