@@ -64,7 +64,7 @@ wp-scos-strategic-content-operating-system/
 Modules load only when enabled. Status reflects current `main` branch.
 | Module | Location | Status |
 |--------|----------|--------|
-| **Content Architecture** | `site-essentials/Modules/ContentArchitecture/` | ✅ Active — CAR metabox, taxonomies (`scos_content_cluster`, `scos_topic`), workflow fields, content analysis, Airtable sync UI |
+| **Content Architecture** | `site-essentials/Modules/ContentArchitecture/` | ✅ Active — CAR metabox, taxonomies (`scos_content_cluster`, `scos_topic`), workflow fields, content analysis |
 | **SEO Meta** | `site-essentials/Modules/SeoMeta/` | ✅ Active — per-post SEO, archive SEO options, redirections, head output |
 | **SEO / Sitemaps** | `site-essentials/Modules/Seo/` | ✅ Active — XML/image sitemaps |
 | **Schema (per-post)** | `site-essentials/Modules/SeoSchema/` | ✅ Active |

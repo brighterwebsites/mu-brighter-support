@@ -114,7 +114,7 @@ $cards = [
 	[
 		'module_id' => 'content_architecture',
 		'title'     => __( 'Content Architecture', 'site-essentials' ),
-		'desc'      => __( 'ALTC topic clusters, content scoring, metadata management, and Airtable integration.', 'site-essentials' ),
+		'desc'      => __( 'ALTC topic clusters, content scoring, and metadata management.', 'site-essentials' ),
 		'url'       => admin_url( 'admin.php?page=scos-content-architecture' ),
 		'guide'     => 'https://brighterwebsites.com.au/software/content-architecture/',
 		'icon'      => 'content_architecture',

@@ -26,8 +26,6 @@ class BW_Social_Webhook_Settings {
         // Handle form submission
         add_action('admin_post_bw_save_webhook_settings', array($this, 'handle_save'));
 
-        // Bulk sync AJAX
-        add_action('wp_ajax_bw_airtable_seed_bulk', array($this, 'ajax_seed_airtable_bulk'));
     }
 
     /**
@@ -43,14 +41,6 @@ class BW_Social_Webhook_Settings {
             'manage_options',
             'bw-social-amplification',
             array($this, 'render_settings_page')
-        );
-        add_submenu_page(
-            'brighter_support',
-            __('Integration CAR', 'brighterwebsites'),
-            __('Integration CAR', 'brighterwebsites'),
-            'manage_options',
-            'bw-integration-car',
-            array($this, 'render_car_page')
         );
     }
 
@@ -95,36 +85,6 @@ class BW_Social_Webhook_Settings {
             'default' => ''
         ));
 
-        // Airtable settings
-        register_setting('bw_social_amplification', 'bw_airtable_api_token', array(
-            'type' => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default' => ''
-        ));
-
-        register_setting('bw_social_amplification', 'bw_airtable_base_id', array(
-            'type' => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default' => ''
-        ));
-
-        register_setting('bw_social_amplification', 'bw_airtable_table_id', array(
-            'type' => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default' => ''
-        ));
-
-        register_setting('bw_social_amplification', 'bw_airtable_altc_table_id', array(
-            'type' => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default' => ''
-        ));
-
-        register_setting('bw_social_amplification', 'bw_airtable_topics_table_id', array(
-            'type' => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default' => ''
-        ));
     }
 
     /**
@@ -304,7 +264,6 @@ class BW_Social_Webhook_Settings {
                             <p class="description">
                                 <?php _e('Use this endpoint in Make.com to generate AI prompts. Requires X-Brighter-Token header.', 'brighterwebsites'); ?>
                             </p>
-                            <p><?php _e('Airtable CAR Sync is configured on', 'brighterwebsites'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=bw-integration-car')); ?>"><?php _e('Integration CAR', 'brighterwebsites'); ?></a>.</p>
                         </td>
                     </tr>
                 </table>
@@ -327,188 +286,19 @@ class BW_Social_Webhook_Settings {
         <?php
     }
 
-    /**
-     * Render Integration CAR page (Airtable CAR Sync Configuration only)
-     */
+    /** @deprecated Airtable CAR page removed 2026-07-18. Stub kept for safety. */
     public function render_car_page() {
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have sufficient permissions to access this page.'));
         }
         ?>
         <div class="wrap">
-            <h1><?php _e('Airtable CAR Sync Configuration', 'brighterwebsites'); ?></h1>
-
-            <?php if (isset($_GET['updated']) && $_GET['updated'] === 'true'): ?>
-                <div class="notice notice-success is-dismissible">
-                    <p><?php _e('Settings saved successfully!', 'brighterwebsites'); ?></p>
-                </div>
-            <?php endif; ?>
-
-            <p><?php _e('Configure Airtable integration for Content Architecture Record (CAR) synchronization.', 'brighterwebsites'); ?></p>
-
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <?php wp_nonce_field('bw_webhook_settings', 'bw_webhook_nonce'); ?>
-                <input type="hidden" name="action" value="bw_save_webhook_settings" />
-                <input type="hidden" name="return_page" value="bw-integration-car" />
-
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="bw_airtable_api_token"><?php _e('Airtable API Token', 'brighterwebsites'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text"
-                                   id="bw_airtable_api_token"
-                                   name="bw_airtable_api_token"
-                                   value="<?php echo esc_attr(get_option('bw_airtable_api_token', '')); ?>"
-                                   class="regular-text code"
-                                   style="width: 100%; max-width: 600px;"
-                                   placeholder="Bearer pat..." />
-                            <p class="description">
-                                <?php _e('Your Airtable Personal Access Token (starts with "Bearer pat...").', 'brighterwebsites'); ?>
-                                <br>
-                                <?php _e('Get this from:', 'brighterwebsites'); ?>
-                                <a href="https://airtable.com/create/tokens" target="_blank"><?php _e('Airtable Account → Developer → Personal Access Tokens', 'brighterwebsites'); ?></a>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="bw_airtable_base_id"><?php _e('Airtable Base ID', 'brighterwebsites'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text"
-                                   id="bw_airtable_base_id"
-                                   name="bw_airtable_base_id"
-                                   value="<?php echo esc_attr(get_option('bw_airtable_base_id', '')); ?>"
-                                   class="regular-text code"
-                                   style="width: 100%; max-width: 600px;"
-                                   placeholder="appOqcQR79umbJJGP" />
-                            <p class="description">
-                                <?php _e('Your Airtable Base ID (found in the API docs URL).', 'brighterwebsites'); ?>
-                                <br>
-                                <?php _e('Get this from:', 'brighterwebsites'); ?>
-                                <a href="https://airtable.com/api" target="_blank"><?php _e('Airtable → Help → API documentation', 'brighterwebsites'); ?></a>
-                                <?php _e(' - The Base ID is in the URL:', 'brighterwebsites'); ?>
-                                <code>https://airtable.com/appOqcQR79umbJJGP/api/docs</code>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="bw_airtable_table_id"><?php _e('Airtable Content Table ID', 'brighterwebsites'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text"
-                                   id="bw_airtable_table_id"
-                                   name="bw_airtable_table_id"
-                                   value="<?php echo esc_attr(get_option('bw_airtable_table_id', '')); ?>"
-                                   class="regular-text code"
-                                   style="width: 100%; max-width: 600px;"
-                                   placeholder="tblXXXXXXXXXXXXXX" />
-                            <p class="description">
-                                <?php _e('Content table (stronger than name - use Table ID from API docs).', 'brighterwebsites'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="bw_airtable_altc_table_id"><?php _e('Airtable ALTC Table ID', 'brighterwebsites'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text"
-                                   id="bw_airtable_altc_table_id"
-                                   name="bw_airtable_altc_table_id"
-                                   value="<?php echo esc_attr(get_option('bw_airtable_altc_table_id', '')); ?>"
-                                   class="regular-text code"
-                                   style="width: 100%; max-width: 600px;"
-                                   placeholder="tblXXXXXXXXXXXXXX" />
-                            <p class="description">
-                                <?php _e('ALTC Strategic Lenses table. Terms sync on save; stores record ID in term meta for linked records in Content.', 'brighterwebsites'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="bw_airtable_topics_table_id"><?php _e('Airtable Topics Table ID', 'brighterwebsites'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text"
-                                   id="bw_airtable_topics_table_id"
-                                   name="bw_airtable_topics_table_id"
-                                   value="<?php echo esc_attr(get_option('bw_airtable_topics_table_id', '')); ?>"
-                                   class="regular-text code"
-                                   style="width: 100%; max-width: 600px;"
-                                   placeholder="tblXXXXXXXXXXXXXX" />
-                            <p class="description">
-                                <?php _e('Topics table. Terms sync on save; stores record ID in term meta for linked records in Content.', 'brighterwebsites'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php _e('Airtable Table Structure', 'brighterwebsites'); ?></th>
-                        <td>
-                            <p><?php _e('Use this Google Sheets template to set up your Airtable table with the correct structure:', 'brighterwebsites'); ?></p>
-                            <p>
-                                <a href="https://docs.google.com/spreadsheets/d/1hNYVYF31T7S2CA0J8Jv01eMH5s3tnACaZg6Il9IBn9s/edit?usp=sharing"
-                                   target="_blank"
-                                   class="button button-secondary">
-                                    <?php _e('View Airtable Structure Template', 'brighterwebsites'); ?>
-                                </a>
-                            </p>
-                            <p class="description">
-                                <?php _e('This template can be easily imported into Airtable to set up the table correctly with all required fields.', 'brighterwebsites'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php _e('Seed Airtable (Bulk Sync)', 'brighterwebsites'); ?></th>
-                        <td>
-                            <p><?php _e('Sync all ALTC Clusters, Topics, and Content to Airtable. Recommended order: 1) ALTC Clusters, 2) Topics, 3) Content. Content runs in 2 phases: static data first, then Internal Links.', 'brighterwebsites'); ?></p>
-                            <p>
-                                <button type="button" id="bw-airtable-seed-bulk" class="button button-secondary">
-                                    <?php _e('Seed Airtable — Sync All', 'brighterwebsites'); ?>
-                                </button>
-                            </p>
-                            <p id="bw-airtable-seed-status" style="margin-top: 8px; font-family: monospace; font-size: 12px;"></p>
-                            <?php wp_nonce_field('bw_airtable_seed_bulk', 'bw_airtable_seed_nonce', false); ?>
-                        </td>
-                    </tr>
-                </table>
-
-                <?php submit_button(__('Save Settings', 'brighterwebsites')); ?>
-            </form>
+            <h1><?php _e('Airtable CAR Sync', 'brighterwebsites'); ?></h1>
+            <p><?php _e('This integration has been retired.', 'brighterwebsites'); ?></p>
         </div>
-        <script>
-        jQuery(document).ready(function($) {
-            $('#bw-airtable-seed-bulk').on('click', function() {
-                var $btn = $(this), $status = $('#bw-airtable-seed-status');
-                $btn.prop('disabled', true);
-                $status.text('Syncing... ALTC Clusters, Topics, Content (phase 1), Content (phase 2)');
-                $.post(ajaxurl, {
-                    action: 'bw_airtable_seed_bulk',
-                    nonce: $('#bw_airtable_seed_nonce').val()
-                }).done(function(r) {
-                    if (r.success) {
-                        var d = r.data, lines = [];
-                        lines.push('ALTC: ' + (d.altc ? d.altc.synced : 0) + ' synced, ' + (d.altc ? d.altc.errors : 0) + ' errors');
-                        lines.push('Topics: ' + (d.topics ? d.topics.synced : 0) + ' synced, ' + (d.topics ? d.topics.errors : 0) + ' errors');
-                        lines.push('Content P1: ' + (d.content_phase1 ? d.content_phase1.synced : 0) + ' synced, ' + (d.content_phase1 ? d.content_phase1.errors : 0) + ' errors');
-                        lines.push('Content P2 (links): ' + (d.content_phase2 ? d.content_phase2.synced : 0) + ' synced, ' + (d.content_phase2 ? d.content_phase2.errors : 0) + ' errors');
-                        $status.text(lines.join(' | '));
-                    } else {
-                        $status.text('Error: ' + (r.data && r.data.message ? r.data.message : 'Unknown'));
-                    }
-                }).fail(function() {
-                    $status.text('Request failed. Check console/network.');
-                }).always(function() {
-                    $btn.prop('disabled', false);
-                });
-            });
-        });
-        </script>
         <?php
     }
+
 
     /**
      * Handle form submission
@@ -524,30 +314,7 @@ class BW_Social_Webhook_Settings {
             wp_die(__('You do not have sufficient permissions', 'brighterwebsites'));
         }
 
-        $return_page = isset($_POST['return_page']) ? sanitize_text_field($_POST['return_page']) : 'bw-social-amplification';
-
-        // When saving from Integration CAR page, only update Airtable options (do not overwrite webhook/YOURLS)
-        if ($return_page === 'bw-integration-car') {
-            $airtable_api_token = isset($_POST['bw_airtable_api_token']) ? sanitize_text_field($_POST['bw_airtable_api_token']) : '';
-            $airtable_base_id = isset($_POST['bw_airtable_base_id']) ? sanitize_text_field($_POST['bw_airtable_base_id']) : '';
-            $airtable_table_id = isset($_POST['bw_airtable_table_id']) ? sanitize_text_field($_POST['bw_airtable_table_id']) : '';
-            $airtable_altc_table_id = isset($_POST['bw_airtable_altc_table_id']) ? sanitize_text_field($_POST['bw_airtable_altc_table_id']) : '';
-            $airtable_topics_table_id = isset($_POST['bw_airtable_topics_table_id']) ? sanitize_text_field($_POST['bw_airtable_topics_table_id']) : '';
-
-            update_option('bw_airtable_api_token', $airtable_api_token);
-            update_option('bw_airtable_base_id', $airtable_base_id);
-            update_option('bw_airtable_table_id', $airtable_table_id);
-            update_option('bw_airtable_altc_table_id', $airtable_altc_table_id);
-            update_option('bw_airtable_topics_table_id', $airtable_topics_table_id);
-
-            wp_redirect(add_query_arg(array(
-                'page' => 'bw-integration-car',
-                'updated' => 'true'
-            ), admin_url('admin.php')));
-            exit;
-        }
-
-        // Save webhook settings (Social Amplification page)
+        // Save webhook settings
         $webhook_url = isset($_POST['bw_social_webhook_url']) ? esc_url_raw($_POST['bw_social_webhook_url']) : '';
         $enabled = isset($_POST['bw_social_webhook_enabled']) ? 1 : 0;
 
@@ -565,43 +332,10 @@ class BW_Social_Webhook_Settings {
         update_option('bw_yourls_username', $yourls_username);
         update_option('bw_yourls_password', $yourls_password);
 
-        // Save Airtable settings (when on Social Amplification page)
-        $airtable_api_token = isset($_POST['bw_airtable_api_token']) ? sanitize_text_field($_POST['bw_airtable_api_token']) : '';
-        $airtable_base_id = isset($_POST['bw_airtable_base_id']) ? sanitize_text_field($_POST['bw_airtable_base_id']) : '';
-        $airtable_table_id = isset($_POST['bw_airtable_table_id']) ? sanitize_text_field($_POST['bw_airtable_table_id']) : '';
-        $airtable_altc_table_id = isset($_POST['bw_airtable_altc_table_id']) ? sanitize_text_field($_POST['bw_airtable_altc_table_id']) : '';
-        $airtable_topics_table_id = isset($_POST['bw_airtable_topics_table_id']) ? sanitize_text_field($_POST['bw_airtable_topics_table_id']) : '';
-
-        update_option('bw_airtable_api_token', $airtable_api_token);
-        update_option('bw_airtable_base_id', $airtable_base_id);
-        update_option('bw_airtable_table_id', $airtable_table_id);
-        update_option('bw_airtable_altc_table_id', $airtable_altc_table_id);
-        update_option('bw_airtable_topics_table_id', $airtable_topics_table_id);
-
         wp_redirect(add_query_arg(array(
             'page' => 'bw-social-amplification',
             'updated' => 'true'
         ), admin_url('admin.php')));
         exit;
-    }
-
-    /**
-     * AJAX: Seed Airtable bulk sync (ALTC → Topics → Content phase 1 → Content phase 2)
-     */
-    public function ajax_seed_airtable_bulk() {
-        check_ajax_referer('bw_airtable_seed_bulk', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => 'Insufficient permissions'));
-        }
-        if (!class_exists('BW_Airtable_Helper')) {
-            wp_send_json_error(array('message' => 'Airtable helper not loaded'));
-        }
-        set_time_limit(300);
-        $results = array();
-        $results['altc'] = BW_Airtable_Helper::bulk_sync_altc_terms();
-        $results['topics'] = BW_Airtable_Helper::bulk_sync_topics();
-        $results['content_phase1'] = BW_Airtable_Helper::bulk_sync_content(1);
-        $results['content_phase2'] = BW_Airtable_Helper::bulk_sync_content(2);
-        wp_send_json_success($results);
     }
 }

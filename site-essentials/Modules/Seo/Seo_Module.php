@@ -827,12 +827,6 @@ class Seo_Module implements Module_Interface {
             return true;
         }
 
-        // Check SEOPress meta
-        $seopress_noindex = get_post_meta($post_id, '_seopress_robots_index', true);
-        if ($seopress_noindex === 'yes') {
-            return true;
-        }
-
         // Check generic custom field (for custom implementations)
         $custom_noindex = get_post_meta($post_id, '_robots_noindex', true);
         if ($custom_noindex === '1' || $custom_noindex === 'yes') {
@@ -895,9 +889,6 @@ class Seo_Module implements Module_Interface {
         }
 
         $canonical = get_post_meta( $post_id, 'scos_seo_canonical', true );
-        if ( empty( $canonical ) ) {
-            $canonical = get_post_meta( $post_id, '_seopress_robots_canonical', true );
-        }
 
         if ( empty( $canonical ) ) {
             return false;

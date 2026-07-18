@@ -8,8 +8,7 @@
  *
  * Read priority for singulars:
  *   1. scos_seo_*   — set via our SeoMeta metabox
- *   2. _seopress_*  — legacy/migrated data (backward compat)
- *   3. WordPress defaults
+ *   2. WordPress defaults
  *
  * Read priority for archives:
  *   1. scos_seo_archive_{slug} option — set via SEO > Meta Tags admin tab
@@ -126,12 +125,6 @@ class Head_Output {
 			return $val;
 		}
 
-		// Fallback: SEOPress stored value (populated by our dual-write on save)
-		$sp = get_post_meta( $pid, '_seopress_titles_title', true );
-		if ( ! empty( $sp ) ) {
-			return $sp;
-		}
-
 		return $title; // WordPress default
 	}
 
@@ -170,18 +163,8 @@ class Head_Output {
 
 		$scos = get_post_meta( $pid, 'scos_seo_robots', true );
 
-		// No scos data — try SEOPress legacy keys
 		if ( ! is_array( $scos ) || empty( $scos ) ) {
-			$sp_noindex  = get_post_meta( $pid, '_seopress_robots_index', true );
-			$sp_nofollow = get_post_meta( $pid, '_seopress_robots_follow', true );
-			if ( '1' === $sp_noindex ) {
-				$robots['noindex'] = true;
-				unset( $robots['max-image-preview'], $robots['max-snippet'], $robots['max-video-preview'] );
-			}
-			if ( '1' === $sp_nofollow ) {
-				$robots['nofollow'] = true;
-			}
-			return $robots;
+			return $robots; // WordPress defaults
 		}
 
 		return self::apply_robots_array( $robots, $scos );
@@ -262,10 +245,6 @@ class Head_Output {
 		$desc = get_post_meta( $pid, 'scos_seo_description', true );
 
 		if ( empty( $desc ) ) {
-			$desc = get_post_meta( $pid, '_seopress_titles_desc', true );
-		}
-
-		if ( empty( $desc ) ) {
 			$post = get_post( $pid );
 			if ( $post && has_excerpt( $pid ) ) {
 				$desc = wp_strip_all_tags( get_the_excerpt( $post ) );
@@ -278,10 +257,6 @@ class Head_Output {
 
 		// ── Canonical ────────────────────────────────────────────────────────
 		$canonical = get_post_meta( $pid, 'scos_seo_canonical', true );
-
-		if ( empty( $canonical ) ) {
-			$canonical = get_post_meta( $pid, '_seopress_robots_canonical', true );
-		}
 
 		if ( empty( $canonical ) ) {
 			$canonical = get_permalink( $pid );

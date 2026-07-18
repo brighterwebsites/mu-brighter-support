@@ -710,8 +710,8 @@ function bw_render_schema_graph() {
         }
         $description = !empty($tldr) ? wp_strip_all_tags($tldr) : (get_the_excerpt() ?: wp_trim_words(get_the_content(), 30));
         
-        // Get SEOPress meta title for alternativeHeadline
-        $meta_title = get_post_meta($post_id, '_seopress_titles_title', true);
+        // Get SCOS meta title for alternativeHeadline
+        $meta_title = get_post_meta($post_id, 'scos_seo_title', true);
         
         // Get primary topic for "about" — scos_topic taxonomy is canonical
         $about = null;
@@ -829,8 +829,8 @@ function bw_render_schema_graph() {
         }
         $description = !empty($tldr) ? wp_strip_all_tags($tldr) : (get_the_excerpt() ?: wp_trim_words(get_the_content(), 30));
         
-        // Get SEOPress meta title for alternativeHeadline
-        $meta_title = get_post_meta($post_id, '_seopress_titles_title', true);
+        // Get SCOS meta title for alternativeHeadline
+        $meta_title = get_post_meta($post_id, 'scos_seo_title', true);
         
         // Get word count and reading time
         $word_count   = (int) get_post_meta( $post_id, 'scos_ca_word_count',   true );

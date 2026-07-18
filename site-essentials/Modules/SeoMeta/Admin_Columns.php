@@ -9,8 +9,7 @@
  * Quick Edit adds inline editing for:
  *   scos_seo_title, scos_seo_description, scos_seo_breadcrumb_title
  *
- * Save mirrors the dual-write pattern from Meta_Box::save() so SEOPress
- * frontend output stays in sync without a full post edit.
+ * Save writes to scos_seo_* keys only.
  *
  * Also enqueues CSS to hide the redundant scos_topic and scos_content_cluster
  * taxonomy checklists in Quick Edit (the hidden inputs WP always renders are
@@ -88,18 +87,9 @@ class Admin_Columns {
 		switch ( $column ) {
 
 			case 'scos_seo_title':
-				$title = get_post_meta( $post_id, 'scos_seo_title', true );
-				if ( empty( $title ) ) {
-					$title = get_post_meta( $post_id, '_seopress_titles_title', true );
-				}
-				$desc = get_post_meta( $post_id, 'scos_seo_description', true );
-				if ( empty( $desc ) ) {
-					$desc = get_post_meta( $post_id, '_seopress_titles_desc', true );
-				}
+				$title      = get_post_meta( $post_id, 'scos_seo_title', true );
+				$desc       = get_post_meta( $post_id, 'scos_seo_description', true );
 				$breadcrumb = get_post_meta( $post_id, 'scos_seo_breadcrumb_title', true );
-				if ( empty( $breadcrumb ) ) {
-					$breadcrumb = get_post_meta( $post_id, '_seopress_robots_breadcrumbs', true );
-				}
 
 				// Hidden container — read by Quick Edit JS for pre-population.
 				printf(
@@ -123,9 +113,6 @@ class Admin_Columns {
 
 			case 'scos_seo_desc':
 				$desc = get_post_meta( $post_id, 'scos_seo_description', true );
-				if ( empty( $desc ) ) {
-					$desc = get_post_meta( $post_id, '_seopress_titles_desc', true );
-				}
 				if ( $desc ) {
 					printf(
 						'<span class="scos-col-text" title="%s">%s</span>',
@@ -190,25 +177,19 @@ class Admin_Columns {
 		// Only process Quick Edit saves — not normal post editor saves (Meta_Box handles those).
 		if ( ! isset( $_REQUEST['_inline_edit'] ) ) { return; }
 
-		// SEO Title — dual-write mirrors Meta_Box::save().
 		if ( isset( $_POST['scos_seo_qe_title'] ) ) {
 			$val = sanitize_text_field( wp_unslash( $_POST['scos_seo_qe_title'] ) );
 			self::update_or_delete( $post_id, 'scos_seo_title', $val );
-			self::update_or_delete( $post_id, '_seopress_titles_title', $val );
 		}
 
-		// SEO Description — dual-write.
 		if ( isset( $_POST['scos_seo_qe_description'] ) ) {
 			$val = sanitize_textarea_field( wp_unslash( $_POST['scos_seo_qe_description'] ) );
 			self::update_or_delete( $post_id, 'scos_seo_description', $val );
-			self::update_or_delete( $post_id, '_seopress_titles_desc', $val );
 		}
 
-		// Breadcrumb label — dual-write.
 		if ( isset( $_POST['scos_seo_qe_breadcrumb'] ) ) {
 			$val = sanitize_text_field( wp_unslash( $_POST['scos_seo_qe_breadcrumb'] ) );
 			self::update_or_delete( $post_id, 'scos_seo_breadcrumb_title', $val );
-			self::update_or_delete( $post_id, '_seopress_robots_breadcrumbs', $val );
 		}
 	}
 

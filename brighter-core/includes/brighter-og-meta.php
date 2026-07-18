@@ -140,19 +140,11 @@ function brighter_get_og_title() {
     if (is_singular()) {
         global $post;
 
-        // scos_seo_title first (our metabox)
         $scos_title = get_post_meta($post->ID, 'scos_seo_title', true);
         if (!empty($scos_title)) {
             return $scos_title;
         }
 
-        // Fallback: SEOPress meta (populated by our dual-write on save)
-        $seopress_title = get_post_meta($post->ID, '_seopress_titles_title', true);
-        if (!empty($seopress_title)) {
-            return $seopress_title;
-        }
-        
-        // Fallback to post title
         return get_the_title($post->ID);
     }
     
@@ -186,18 +178,11 @@ function brighter_get_og_description() {
     if (is_singular()) {
         global $post;
 
-        // scos_seo_description first (our metabox)
         $scos_desc = get_post_meta($post->ID, 'scos_seo_description', true);
         if (!empty($scos_desc)) {
             return $scos_desc;
         }
 
-        // Fallback: SEOPress meta
-        $seopress_desc = get_post_meta($post->ID, '_seopress_titles_desc', true);
-        if (!empty($seopress_desc)) {
-            return $seopress_desc;
-        }
-        
         // Fallback to excerpt
         if (has_excerpt($post->ID)) {
             return wp_strip_all_tags(get_the_excerpt($post));

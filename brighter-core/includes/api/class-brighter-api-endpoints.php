@@ -882,21 +882,13 @@ class Brighter_API_Endpoints {
     }
 
     /**
-     * Get meta description (SEOPress or Yoast)
+     * Get meta description from SCOS canonical key.
      *
      * @param int $post_id Post ID
      * @return string Meta description
      */
     private function get_meta_description($post_id) {
-        // Try SEOPress first
-        $meta_desc = get_post_meta($post_id, '_seopress_titles_desc', true);
-
-        // Fall back to Yoast
-        if (empty($meta_desc)) {
-            $meta_desc = get_post_meta($post_id, '_yoast_wpseo_metadesc', true);
-        }
-
-        return $meta_desc ?: '';
+        return (string) get_post_meta($post_id, 'scos_seo_description', true);
     }
 
     /**
@@ -986,15 +978,10 @@ class Brighter_API_Endpoints {
     private function get_custom_fields($post_id) {
         $fields = array();
 
-        // SEOPress fields
-        $seo_title = get_post_meta($post_id, '_seopress_titles_title', true);
+        // SEO Meta
+        $seo_title = get_post_meta($post_id, 'scos_seo_title', true);
         if ($seo_title) {
             $fields['seo_title'] = $seo_title;
-        }
-
-        $target_keyword = get_post_meta($post_id, '_seopress_analysis_target_kw', true);
-        if ($target_keyword) {
-            $fields['target_keyword'] = $target_keyword;
         }
 
         // Short link (ACF)

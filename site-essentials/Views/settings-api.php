@@ -204,14 +204,6 @@ X-Brighter-Token: <?php echo $has_token ? esc_html( substr( $token, 0, 8 ) ) . '
 						</a>
 					</td>
 				</tr>
-				<tr>
-					<th>Airtable</th>
-					<td>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=scos-content-architecture&tab=integrations' ) ); ?>">
-							<?php esc_html_e( 'Content Architecture → Integrations', 'site-essentials' ); ?>
-						</a>
-					</td>
-				</tr>
 			</tbody>
 		</table>
 	</div>

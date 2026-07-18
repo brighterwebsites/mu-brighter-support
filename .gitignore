@@ -16,6 +16,8 @@
 
 # Documentation and example/template directories (local reference only)
 /docs/
+/archive/
+/design-set/
 /Examples_templates/
 /high level strategy/
 /docs/history/

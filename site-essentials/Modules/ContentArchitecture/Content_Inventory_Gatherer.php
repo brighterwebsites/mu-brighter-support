@@ -255,7 +255,7 @@ class Content_Inventory_Gatherer {
 				'scos_seo_freeze_og_date'      => $nn( get_post_meta( $pid, 'scos_seo_freeze_og_date', true ) ),
 				'scos_seo_sitemap_exclude'     => $nn( get_post_meta( $pid, 'scos_seo_sitemap_exclude', true ) ),
 				'scos_seo_sitemap_noindex_override' => $nn( get_post_meta( $pid, 'scos_seo_sitemap_noindex_override', true ) ),
-				'scos_seo_isnoindex'           => $nn( get_post_meta( $pid, 'scos_seo_isnoindex', true ) ),
+				'scos_seo_noindex'             => in_array( 'noindex', (array) get_post_meta( $pid, 'scos_seo_robots', true ), true ) ? 'yes' : null,
 
 				// Social Amplification
 				'scos_sa_shortlink_slug'       => $nn( get_post_meta( $pid, 'scos_sa_shortlink_slug', true ) ),
