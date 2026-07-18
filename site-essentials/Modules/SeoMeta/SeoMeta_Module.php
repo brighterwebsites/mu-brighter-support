@@ -7,13 +7,11 @@
  *  - Advanced   : Canonical URL, Meta Robots directives, Sitemap exclusions
  *  - OG Social  : Planned Phase 2 (placeholder)
  *
- * Stores authoritative data in scos_seo_* meta keys.
- * Dual-writes to SEOPress / legacy keys on save so Airtable sync, the [tldr]
- * shortcode, and SEOPress frontend output continue working without changes.
+ * Stores authoritative data in scos_seo_* meta keys. No SEOPress dual-writes.
  *
  * Absorbs:
  *  - BW_TLDR_Meta_Box    (bw_tldr)
- *  - BW_Breadcrumbs_Meta (_bw_breadcrumb, _seopress_robots_breadcrumbs)
+ *  - BW_Breadcrumbs_Meta (_bw_breadcrumb)
  *
  * @package    SiteEssentials
  * @subpackage Modules\SeoMeta
@@ -22,6 +20,7 @@
  * v1.1 | 2026-06-30 — Admin columns (SEO Title, SEO Desc) + Quick Edit for Title, Description, Breadcrumb.
  * v1.2 | 2026-07-01 — Register suggest-seo-meta and suggest-tldr WP-CLI commands.
  * v1.3 | 2026-07-01 — Bootstrap Media_Meta_Filler, Media_Columns; add scos fill-image-meta CLI command.
+ * v1.4 | 2026-07-18 — Remove SEOPress dual-writes and fallback reads; scos_seo_* is sole contract.
  */
 
 namespace SiteEssentials\Modules\SeoMeta;

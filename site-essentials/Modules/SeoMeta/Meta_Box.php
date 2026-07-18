@@ -3,18 +3,7 @@
  * SEO Meta — Meta Box Controller
  *
  * Registers the "SEO" meta box on all supported post types.
- * Handles save with:
- *  - Primary write to scos_seo_* keys
- *  - Dual-write to SEOPress keys for backward compatibility:
- *      scos_seo_title       → _seopress_titles_title
- *      scos_seo_description → _seopress_titles_desc
- *      scos_seo_canonical   → _seopress_robots_canonical
- *      scos_seo_robots (noindex) → _seopress_robots_index = 'yes' | 'no'
- *      scos_seo_breadcrumb_title → _seopress_robots_breadcrumbs
- *
- *  - bw_tldr dual-write removed — all consumers read scos_seo_tldr only
- *
- * Reads existing scos_seo_* values; bw_ legacy fallbacks removed (migration confirmed complete).
+ * Writes to scos_seo_* keys only. No SEOPress dual-writes.
  *
  * @package    SiteEssentials
  * @subpackage Modules\SeoMeta
@@ -26,6 +15,7 @@
  * v1.2 | 2026-06-29 — Remove bw_tldr dual-write; consumers now read scos_seo_tldr first.
  * v1.3 | 2026-07-01 — Register scos-media ability category; load Fill_Image_Meta ability.
  * v1.4 | 2026-07-15 — Remove bw_tldr fallback read; migration confirmed complete on all sites.
+ * v1.5 | 2026-07-18 — Remove SEOPress dual-writes and fallback reads; scos_seo_* is sole contract.
  */
 
 namespace SiteEssentials\Modules\SeoMeta;
@@ -109,37 +99,16 @@ class Meta_Box {
 		// ---- Read primary scos_seo_* values first, fall back to legacy ----
 
 		$breadcrumb_title = get_post_meta( $post->ID, 'scos_seo_breadcrumb_title', true );
-		if ( empty( $breadcrumb_title ) ) {
-			// Fallback: SEOPress stores the breadcrumb label in _seopress_robots_breadcrumbs.
-			$breadcrumb_title = get_post_meta( $post->ID, '_seopress_robots_breadcrumbs', true );
-		}
 
 		$tldr = get_post_meta( $post->ID, 'scos_seo_tldr', true );
 
 		$title = get_post_meta( $post->ID, 'scos_seo_title', true );
-		if ( empty( $title ) ) {
-			$title = get_post_meta( $post->ID, '_seopress_titles_title', true );
-		}
 
 		$description = get_post_meta( $post->ID, 'scos_seo_description', true );
-		if ( empty( $description ) ) {
-			$description = get_post_meta( $post->ID, '_seopress_titles_desc', true );
-		}
 
 		$canonical = get_post_meta( $post->ID, 'scos_seo_canonical', true );
-		if ( empty( $canonical ) ) {
-			$canonical = get_post_meta( $post->ID, '_seopress_robots_canonical', true );
-		}
 
-		// Robots: scos_seo_robots (array), or detect legacy noindex
 		$robots = (array) get_post_meta( $post->ID, 'scos_seo_robots', true );
-		if ( empty( $robots ) ) {
-			// Migrate from SEOPress noindex value
-			$seopress_noindex = get_post_meta( $post->ID, '_seopress_robots_index', true );
-			if ( 'yes' === $seopress_noindex ) {
-				$robots = [ 'noindex' ];
-			}
-		}
 
 		$sitemap_exclude          = (array) get_post_meta( $post->ID, 'scos_seo_sitemap_exclude', true );
 		$sitemap_noindex_override = (bool) get_post_meta( $post->ID, 'scos_seo_sitemap_noindex_override', true );
@@ -167,9 +136,6 @@ class Meta_Box {
 		if ( isset( $_POST['scos_seo_breadcrumb_title'] ) ) {
 			$val = sanitize_text_field( $_POST['scos_seo_breadcrumb_title'] );
 			self::update_or_delete( $post_id, 'scos_seo_breadcrumb_title', $val );
-			// Dual-write: SEOPress reads _seopress_robots_breadcrumbs for breadcrumb display.
-			// _bw_breadcrumb (YOURLS shortlink slug) is managed by the Social Amplification module.
-			self::update_or_delete( $post_id, '_seopress_robots_breadcrumbs', $val );
 		}
 
 		// ---- TLDR ----
@@ -182,24 +148,18 @@ class Meta_Box {
 		if ( isset( $_POST['scos_seo_title'] ) ) {
 			$val = sanitize_text_field( $_POST['scos_seo_title'] );
 			self::update_or_delete( $post_id, 'scos_seo_title', $val );
-			// Dual-write: SEOPress reads this for frontend <title> and og:title
-			self::update_or_delete( $post_id, '_seopress_titles_title', $val );
 		}
 
 		// ---- Meta description ----
 		if ( isset( $_POST['scos_seo_description'] ) ) {
 			$val = sanitize_textarea_field( $_POST['scos_seo_description'] );
 			self::update_or_delete( $post_id, 'scos_seo_description', $val );
-			// Dual-write: SEOPress reads this for frontend meta description
-			self::update_or_delete( $post_id, '_seopress_titles_desc', $val );
 		}
 
 		// ---- Canonical URL ----
 		if ( isset( $_POST['scos_seo_canonical'] ) ) {
 			$val = esc_url_raw( trim( $_POST['scos_seo_canonical'] ) );
 			self::update_or_delete( $post_id, 'scos_seo_canonical', $val );
-			// Dual-write: SEOPress / Airtable reads _seopress_robots_canonical
-			self::update_or_delete( $post_id, '_seopress_robots_canonical', $val );
 		}
 
 		// ---- Robots directives (multi-check) ----
@@ -213,12 +173,6 @@ class Meta_Box {
 			$robots = [];
 		}
 		update_post_meta( $post_id, 'scos_seo_robots', $robots );
-		// Dual-write: Airtable / Seo_Module sitemap reads _seopress_robots_index
-		update_post_meta(
-			$post_id,
-			'_seopress_robots_index',
-			in_array( 'noindex', $robots, true ) ? 'yes' : 'no'
-		);
 
 		// ---- Freeze modified date (per-post) ----
 		// Always write so unchecking a previously-checked box is captured.

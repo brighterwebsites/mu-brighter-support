@@ -144,12 +144,12 @@ Never load meta individually inside a loop.
 $post_ids = wp_list_pluck( $posts, 'ID' );
 update_meta_cache( 'post', $post_ids );
 foreach ( $posts as $post ) {
-    $value = get_post_meta( $post->ID, 'scos_seo_metatitle', true ); // from cache
+    $value = get_post_meta( $post->ID, 'scos_seo_title', true ); // from cache
 }
 
 // ❌ N+1 — hits DB on every iteration
 foreach ( $posts as $post ) {
-    $value = get_post_meta( $post->ID, 'scos_seo_metatitle', true );
+    $value = get_post_meta( $post->ID, 'scos_seo_title', true );
 }
 ```
 

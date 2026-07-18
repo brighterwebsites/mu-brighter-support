@@ -164,33 +164,4 @@ class BW_Breadcrumbs_Meta {
         return $breadcrumb;
     }
 
-    /**
-     * Migrate from SEOPress breadcrumbs
-     * ARCHIVED - Migration tool removed from UI, keeping method for reference
-     */
-    /*
-    public static function migrate_from_seopress() {
-        global $wpdb;
-
-        $results = $wpdb->get_results("
-            SELECT post_id, meta_value
-            FROM {$wpdb->postmeta}
-            WHERE meta_key = '_seopress_robots_breadcrumbs'
-            AND meta_value != ''
-        ");
-
-        $migrated = 0;
-        foreach ($results as $row) {
-            $existing = get_post_meta($row->post_id, '_bw_breadcrumb', true);
-
-            if (empty($existing)) {
-                $breadcrumb = sanitize_title($row->meta_value);
-                update_post_meta($row->post_id, '_bw_breadcrumb', $breadcrumb);
-                $migrated++;
-            }
-        }
-
-        return $migrated;
-    }
-    */
 }
