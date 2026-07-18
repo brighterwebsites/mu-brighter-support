@@ -10,6 +10,8 @@
  *
  * v1.0 | original
  * v1.1 | 2026-06-29 — Read scos_seo_tldr first; bw_tldr as fallback only.
+ * v1.2 | 2026-07-17 — Strip HTML from TLDR read (field now supports bold/lists/links
+ *                      via wp_editor()).
  */
 
 if (!defined('ABSPATH')) exit;
@@ -214,7 +216,9 @@ class BW_Social_Webhook_Trigger {
     private function get_image_optimization_data($post_id) {
         // Get post content
         $post = get_post($post_id);
-        $tldr = get_post_meta($post_id, 'scos_seo_tldr', true);
+        // TLDR may contain basic HTML (bold/lists/links) via wp_editor() — strip tags,
+        // this feeds AI image-optimization prompt context which expects plain text.
+        $tldr = wp_strip_all_tags((string) get_post_meta($post_id, 'scos_seo_tldr', true));
         if (empty($tldr)) {
             $tldr = get_post_meta($post_id, 'bw_tldr', true); // TODO: remove fallback once all sites resaved
         }

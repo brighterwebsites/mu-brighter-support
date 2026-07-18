@@ -15,6 +15,8 @@
  *
  * v1.0 | 2026-07-01
  * v1.1 | 2026-07-02 — Use wp_get_ability()->execute() instead of direct instantiation.
+ * v1.2 | 2026-07-13 — Auto-establish a current-user context (WP-CLI defaults to user 0,
+ *                      which fails the ability's upload_files permission_callback).
  *
  * @package    SiteEssentials
  * @subpackage Modules\SeoMeta\CLI
@@ -55,6 +57,11 @@ class Fill_Image_Meta_Command extends WP_CLI_Command {
 	 * [--format=<format>]
 	 * : Output format: json (default) or table.
 	 *
+	 * [--user=<id|login|email>]
+	 * : WP-CLI global flag. Run as this user so the ability's permission_callback
+	 * (requires upload_files) resolves correctly. If omitted, the command falls
+	 * back to the site's first administrator automatically — see notes below.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Fill all images site-wide that are missing alt or title
@@ -82,6 +89,8 @@ class Fill_Image_Meta_Command extends WP_CLI_Command {
 		if ( ! class_exists( 'WordPress\AI\Abstracts\Abstract_Ability' ) ) {
 			WP_CLI::error( 'The WordPress AI plugin is not active. scos/fill-image-meta requires it.' );
 		}
+
+		$this->ensure_current_user_context();
 
 		$attachment_id = isset( $assoc_args['attachment-id'] ) ? absint( $assoc_args['attachment-id'] ) : 0;
 		$post_id       = isset( $assoc_args['post-id'] )       ? absint( $assoc_args['post-id'] )       : 0;
@@ -242,6 +251,53 @@ class Fill_Image_Meta_Command extends WP_CLI_Command {
 			$grand_processed,
 			$grand_skipped,
 			$grand_errors
+		) );
+	}
+
+	/**
+	 * Ensure a real user is set as the "current user" for this request.
+	 *
+	 * WP-CLI runs as user ID 0 (no authenticated user) unless the global
+	 * --user=<id|login|email> flag is passed. The scos/fill-image-meta ability's
+	 * permission_callback() requires current_user_can( 'upload_files' ), which
+	 * always fails for user 0 — this is what produces the
+	 * "does not have necessary permission" warning even though the AI provider
+	 * itself is correctly connected and approved.
+	 *
+	 * Shell/WP-CLI access to this command is already a privileged trust
+	 * boundary (server access or an authenticated MCP/automation caller), so
+	 * when no --user is supplied we fall back to the site's first
+	 * administrator rather than forcing every automated caller (Hermes, cron,
+	 * MCP tools) to know and pass an admin user ID.
+	 *
+	 * @since 1.2.0
+	 * @return void
+	 */
+	private function ensure_current_user_context(): void {
+		if ( get_current_user_id() > 0 ) {
+			// --user was already supplied and resolved by WP-CLI core.
+			return;
+		}
+
+		$admins = get_users( [
+			'role'    => 'administrator',
+			'number'  => 1,
+			'orderby' => 'ID',
+			'order'   => 'ASC',
+			'fields'  => 'ID',
+		] );
+
+		if ( empty( $admins ) ) {
+			WP_CLI::error( 'No administrator account found to run scos/fill-image-meta as. Pass --user=<id|login|email> explicitly.' );
+		}
+
+		$admin_id = absint( $admins[0] );
+		wp_set_current_user( $admin_id );
+
+		WP_CLI::log( sprintf(
+			'No --user supplied — running as administrator #%d (%s) to satisfy the ability permission check.',
+			$admin_id,
+			wp_get_current_user()->user_login
 		) );
 	}
 }
