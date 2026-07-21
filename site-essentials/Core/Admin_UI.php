@@ -7,8 +7,11 @@
  *
  * @package    SiteEssentials
  * @subpackage Core
- * @version    1.0.0
+ * @version    1.1.0
  * @since      1.0.0
+ *
+ * v1.1 | 2026-07-21 — Remove Make.com webhook save handling from save_sma_settings()
+ *                      (deprecated, unused on all sites).
  */
 
 namespace SiteEssentials\Core;
@@ -985,8 +988,8 @@ class Admin_UI {
     /**
      * Save Social Amplification settings (admin-post handler)
      *
-     * Saves to scos_sma_* keys and dual-writes to legacy bw_* keys so that
-     * BW_Social_Webhook_Trigger and BW_YOURLS_Helper continue to work without changes.
+     * Saves to scos_sma_* keys and dual-writes YOURLS values to legacy bw_yourls_*
+     * keys so that BW_YOURLS_Helper continues to work without changes.
      *
      * @since 1.1.0
      * @return void
@@ -998,23 +1001,6 @@ class Admin_UI {
         }
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Insufficient permissions.', 'site-essentials' ) );
-        }
-
-        // Make.com webhook — only save if these fields are present in the POST
-        // (they won't be when the Postly tab form submits, preventing cross-tab wipe).
-        if ( isset( $_POST['scos_sma_webhook_url'] ) ) {
-            $webhook_url = esc_url_raw( $_POST['scos_sma_webhook_url'] );
-            update_option( 'scos_sma_webhook_url',  $webhook_url );
-            update_option( 'bw_social_webhook_url', $webhook_url );
-        }
-        // Checkbox: save when the Make.com tab form submits.
-        // The hidden _scos_sma_tab field tells us which form submitted.
-        // SCOS-SA-PASS1 — tab slug updated from 'makecom' to 'make'.
-        $submitted_tab = isset( $_POST['_scos_sma_tab'] ) ? sanitize_key( $_POST['_scos_sma_tab'] ) : '';
-        if ( $submitted_tab === 'make' ) {
-            $webhook_enabled = isset( $_POST['scos_sma_webhook_enabled'] ) ? 1 : 0;
-            update_option( 'scos_sma_webhook_enabled', $webhook_enabled );
-            update_option( 'bw_social_webhook_enabled', $webhook_enabled );
         }
 
         // YOURLS — only save when these fields are actually submitted.
@@ -1032,6 +1018,9 @@ class Admin_UI {
             update_option( $new_key,    $val );
             update_option( $legacy_key, $val );
         }
+
+        // The hidden _scos_sma_tab field tells us which tab's form submitted.
+        $submitted_tab = isset( $_POST['_scos_sma_tab'] ) ? sanitize_key( $_POST['_scos_sma_tab'] ) : '';
 
         // ── Postly.ai / Anthropic pipeline settings ──────────────────────────
         // SCOS-SA-PASS1 — new scheduling/backfill fields (scos_sa_*) added.
@@ -1083,7 +1072,7 @@ class Admin_UI {
 
         // Enable toggle — only save when the Postly tab form submits.
         // Checkboxes are absent from POST when unchecked, so we need the tab guard
-        // to avoid mistakenly writing '' when YOURLS/Make.com forms submit.
+        // to avoid mistakenly writing '' when the YOURLS form submits.
         if ( $submitted_tab === 'postly' ) {
             update_option( 'bw_social_enabled', isset( $_POST['bw_social_enabled'] ) ? '1' : '' );
         }

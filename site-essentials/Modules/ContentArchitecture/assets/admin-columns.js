@@ -141,43 +141,4 @@
 		$( this ).closest( '.scos-qe-progress-tag' ).toggleClass( 'is-selected', $( this ).prop( 'checked' ) );
 	} );
 
-	// -------------------------------------------------------------------------
-	// Social Post column button
-	// -------------------------------------------------------------------------
-
-	$( document ).on( 'click', '.scos-col-social-btn', function ( e ) {
-		e.preventDefault();
-		var $btn = $( this );
-		if ( $btn.prop( 'disabled' ) ) { return; }
-
-		var postId = $btn.data( 'post-id' );
-		var nonce  = $btn.data( 'nonce' );
-
-		$btn.addClass( 'is-sending' ).prop( 'disabled', true );
-
-		$.post(
-			scosCols.ajaxurl,
-			{ action: 'bw_trigger_social_webhook', post_id: postId, nonce: nonce },
-			function ( response ) {
-				$btn.removeClass( 'is-sending' ).prop( 'disabled', false );
-				if ( response && response.success ) {
-					$btn.addClass( 'is-sent' ).attr( 'title', scosCols.i18n.sent );
-					var $meta = $btn.siblings( '.scos-col-social-meta' );
-					if ( $meta.length ) {
-						$meta.text( scosCols.i18n.justNow );
-					} else {
-						$btn.after( '<span class="scos-col-social-meta">' + scosCols.i18n.justNow + '</span>' );
-					}
-					setTimeout( function () { $btn.removeClass( 'is-sent' ); }, 3000 );
-				} else {
-					$btn.addClass( 'is-error' );
-					setTimeout( function () { $btn.removeClass( 'is-error' ); }, 3000 );
-				}
-			}
-		).fail( function () {
-			$btn.removeClass( 'is-sending' ).prop( 'disabled', false ).addClass( 'is-error' );
-			setTimeout( function () { $btn.removeClass( 'is-error' ); }, 3000 );
-		} );
-	} );
-
 } )( jQuery );

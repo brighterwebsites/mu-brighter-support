@@ -8,11 +8,12 @@
  *
  * @package SiteEssentials
  * v1.2 | 2026-07-01
+ * v1.3 | 2026-07-21 — Remove Make.com settings tab and Post Framing card (deprecated,
+ *                      unused on all sites).
  */
 
 defined( 'ABSPATH' ) || exit;
 
-use SiteEssentials\Modules\SocialAmplification\Post_Framing;
 use SiteEssentials\Modules\SocialAmplification\Post_Type_Config;
 use SiteEssentials\Modules\SocialAmplification\SocialAmplification_Module as SMA;
 
@@ -58,10 +59,6 @@ $global_no_attach   = get_option( Post_Type_Config::NO_ATTACH_OPTION, 0 );
 $pt_all_configs   = Post_Type_Config::get_all_configs();
 $registered_types = Post_Type_Config::get_all_registered();
 
-// TODO: migrate key to scos_sa_ prefix — SCOS-SA-PASS1
-$make_webhook_url    = SMA::get_option( 'scos_sma_webhook_url',     'bw_social_webhook_url' );
-$make_auto_trigger   = SMA::get_option( 'scos_sma_webhook_enabled', 'bw_social_webhook_enabled', 0 );
-
 $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
 ?>
 
@@ -90,14 +87,13 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
   <a href="#yourls"   class="scos__tab" data-tab="yourls"><?php esc_html_e( 'Short link – YOURLS', 'site-essentials' ); ?></a>
   <a href="#postly"   class="scos__tab" data-tab="postly"><?php esc_html_e( 'Postly.ai API settings', 'site-essentials' ); ?></a>
   <a href="#posting"  class="scos__tab" data-tab="posting"><?php esc_html_e( 'Posting Settings', 'site-essentials' ); ?></a>
-  <a href="#make"     class="scos__tab" data-tab="make"><?php esc_html_e( 'Make.com settings', 'site-essentials' ); ?></a>
 </nav>
 
 <?php // SCOS-SA-PASS2 — hash-based tab switcher updated for 'posting' tab ?>
 <script>
 (function() {
-  var TABS     = ['settings','yourls','postly','posting','make'];
-  var FORMS    = { yourls: 'scos-sa-form-yourls', postly: 'scos-sa-form-postly', posting: 'scos-sa-form-posting', make: 'scos-sa-form-make' };
+  var TABS     = ['settings','yourls','postly','posting'];
+  var FORMS    = { yourls: 'scos-sa-form-yourls', postly: 'scos-sa-form-postly', posting: 'scos-sa-form-posting' };
   var panels   = {};
   var links    = {};
   var saveBtn;
@@ -152,25 +148,6 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
 
   <div class="scos-card">
     <div class="scos-card__header">
-      <h3 class="scos-card__title"><?php esc_html_e( 'Post framing & social post types', 'site-essentials' ); ?></h3>
-      <p class="scos-card__desc"><?php esc_html_e( 'Manage the framing types and post type templates used during social content generation.', 'site-essentials' ); ?></p>
-    </div>
-    <div class="scos-card__body">
-      <div style="display:flex;gap:var(--scos-s-2)">
-        <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . Post_Framing::POST_TYPE ) ); ?>"
-           class="scos-btn">
-          <span class="dashicons dashicons-edit"></span> <?php esc_html_e( 'Post framing', 'site-essentials' ); ?>
-        </a>
-        <a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . Post_Framing::POST_TYPE ) ); ?>"
-           class="scos-btn">
-          <span class="dashicons dashicons-plus"></span> <?php esc_html_e( 'Add post frame', 'site-essentials' ); ?>
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="scos-card">
-    <div class="scos-card__header">
       <h3 class="scos-card__title"><?php esc_html_e( 'Social Amplification setup guide', 'site-essentials' ); ?></h3>
       <p class="scos-card__desc">
         <?php esc_html_e( 'Create, schedule, and automate social content using your website\'s existing content as inspiration and context. Uses on-site text and images for automated post creation — publish in one click direct from your website, or set up a review gate before anything goes live.', 'site-essentials' ); ?>
@@ -178,12 +155,6 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
     </div>
     <div class="scos-card__body">
       <div class="scos-support__grid">
-
-        <a href="https://brighterwebsites.com.au/software/social-amplification/make-com-integration/"
-           target="_blank" rel="noopener" class="scos-support__tile">
-          <strong><?php esc_html_e( 'Social automation via Make.com', 'site-essentials' ); ?></strong>
-          <span><?php esc_html_e( 'Set up website-to-social automation using Make.com scenarios.', 'site-essentials' ); ?></span>
-        </a>
 
         <a href="https://brighterwebsites.com.au/software/social-amplification/postly-ai-integration/"
            target="_blank" rel="noopener" class="scos-support__tile">
@@ -1045,84 +1016,3 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
 })();
 </script>
 
-<?php // ──────────────────────────────────────────────────────────────────────────── ?>
-<?php // Tab 5 — Make.com settings                                                   ?>
-<?php // SCOS-SA-PASS1 — single scos-card; tab slug changed from makecom to make    ?>
-<?php // ──────────────────────────────────────────────────────────────────────────── ?>
-
-<div id="scos-sa-panel-make">
-
-  <form id="scos-sa-form-make" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-    <?php wp_nonce_field( 'scos_sma_save', 'scos_sma_nonce' ); ?>
-    <input type="hidden" name="action" value="site_essentials_save_sma">
-    <input type="hidden" name="_scos_sma_tab" value="make">
-
-    <div class="scos-card">
-      <div class="scos-card__header">
-        <h3 class="scos-card__title"><?php esc_html_e( 'Make.com integration', 'site-essentials' ); ?></h3>
-        <a href="https://brighterwebsites.com.au/software/social-amplification/make-com-integration/"
-           target="_blank" rel="noopener" class="scos-badge scos-badge--soft"><?php esc_html_e( 'Guide', 'site-essentials' ); ?></a>
-      </div>
-      <div class="scos-card__body">
-
-        <p class="description" style="margin-bottom:var(--scos-s-4)">
-          <?php esc_html_e( 'Configure the Make.com webhook that receives the social post trigger. The "Create Social Post" button on each post sends a payload to this URL.', 'site-essentials' ); ?>
-        </p>
-
-        <table class="scos-form">
-          <tbody>
-
-            <?php // TODO: migrate key scos_sma_webhook_url → scos_sa_make_webhook_url — SCOS-SA-PASS1 ?>
-            <tr>
-              <th>
-                <label for="scos_sma_webhook_url"><?php esc_html_e( 'Webhook URL', 'site-essentials' ); ?></label>
-                <div class="scos-form__slug">scos_sa_make_webhook_url</div>
-              </th>
-              <td>
-                <div style="display:flex;align-items:flex-start;gap:var(--scos-s-4)">
-                  <input id="scos_sma_webhook_url" name="scos_sma_webhook_url" type="url"
-                         class="scos-input" placeholder="https://hook.us2.make.com/..."
-                         value="<?php echo esc_attr( $make_webhook_url ); ?>"
-                         style="flex:1">
-                  <a href="https://brighterwebsites.com.au/software/social-amplification/social-amplification-technical-documentation/"
-                     target="_blank" rel="noopener"
-                     style="white-space:nowrap;font-size:var(--scos-fs-sm);color:var(--scos-accent);padding-top:8px">
-                    <?php esc_html_e( 'See payload reference &rarr;', 'site-essentials' ); ?>
-                  </a>
-                </div>
-                <p class="description"><?php esc_html_e( 'Your Make.com custom webhook URL (starts with https://hook.us2.make.com/...).', 'site-essentials' ); ?></p>
-              </td>
-            </tr>
-
-            <?php // TODO: migrate key scos_sma_webhook_enabled → scos_sa_make_auto_trigger — SCOS-SA-PASS1 ?>
-            <tr>
-              <th>
-                <label for="scos_sma_webhook_enabled"><?php esc_html_e( 'Auto-trigger on publish', 'site-essentials' ); ?></label>
-                <div class="scos-form__slug">scos_sa_make_auto_trigger</div>
-              </th>
-              <td>
-                <label class="scos-checkbox-row">
-                  <input id="scos_sma_webhook_enabled" name="scos_sma_webhook_enabled" type="checkbox"
-                         value="1" <?php checked( $make_auto_trigger, 1 ); ?>>
-                  <?php esc_html_e( 'Automatically notify Make.com when a post is published or updated', 'site-essentials' ); ?>
-                </label>
-                <p class="description">
-                  <em><?php esc_html_e( 'Leave off to use the manual "Create Social Post" button only — recommended for controlled social scheduling.', 'site-essentials' ); ?></em>
-                </p>
-              </td>
-            </tr>
-
-          </tbody>
-        </table>
-
-      </div>
-      <div class="scos-card__footer">
-        <button type="submit" class="scos-btn scos-btn--primary">
-          <span class="dashicons dashicons-saved"></span> <?php esc_html_e( 'Save changes', 'site-essentials' ); ?>
-        </button>
-      </div>
-    </div><!-- /.scos-card Make.com -->
-
-  </form>
-
-</div><!-- /#scos-sa-panel-make -->

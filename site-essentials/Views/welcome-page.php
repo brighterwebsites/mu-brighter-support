@@ -105,7 +105,7 @@ $cards = [
 	[
 		'module_id' => 'social_amplification',
 		'title'     => __( 'Social Amplification', 'site-essentials' ),
-		'desc'      => __( 'AI-generated captions, talking points, short links, and social post scheduling.', 'site-essentials' ),
+		'desc'      => __( 'AI-generated captions, short links, and social post scheduling.', 'site-essentials' ),
 		'url'       => admin_url( 'admin.php?page=site-essentials-social-amplification' ),
 		'guide'     => 'https://brighterwebsites.com.au/software/social-amplification/',
 		'icon'      => 'social_amplification',

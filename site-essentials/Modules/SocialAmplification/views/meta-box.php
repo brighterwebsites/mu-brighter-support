@@ -5,8 +5,6 @@
  * Variables from Meta_Box::render():
  *   $post             WP_Post
  *   $shortlink_slug   string
- *   $last_trigger     string  MySQL datetime or empty
- *   $webhook_url      string
  *   $is_published     bool
  *   $yourls_base      string  base URL e.g. https://bweb1.com.au (or empty)
  *   $amplified        bool
@@ -17,9 +15,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-$webhook_configured = ! empty( $webhook_url );
-$can_trigger        = $is_published && $webhook_configured;
 ?>
 
 <div class="scos-sa-wrap">
@@ -50,49 +45,6 @@ $can_trigger        = $is_published && $webhook_configured;
 			<p class="scos-sa-help"><?php esc_html_e( 'Slug format, no spaces. Saved to YOURLS as the shortlink keyword.', 'site-essentials' ); ?></p>
 		</div>
 	</div>
-
-	<!-- ── Create Social Post ── -->
-	<div class="scos-sa-section scos-sa-section--trigger">
-
-		<?php if ( ! $webhook_configured ) : ?>
-			<div class="scos-sa-status scos-sa-status--warn">
-				<span class="dashicons dashicons-warning"></span>
-				<?php esc_html_e( 'Webhook not configured.', 'site-essentials' ); ?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=site-essentials-social-amplification&tab=makecom' ) ); ?>">
-					<?php esc_html_e( 'Open settings', 'site-essentials' ); ?>
-				</a>
-			</div>
-		<?php elseif ( ! $is_published ) : ?>
-			<div class="scos-sa-status scos-sa-status--info">
-				<span class="dashicons dashicons-edit"></span>
-				<?php esc_html_e( 'Publish this post to enable social post creation.', 'site-essentials' ); ?>
-			</div>
-		<?php endif; ?>
-
-		<button type="button"
-			id="scos-sa-trigger-btn"
-			class="button button-primary scos-sa-trigger-btn"
-			data-post-id="<?php echo esc_attr( $post->ID ); ?>"
-			<?php disabled( ! $can_trigger ); ?>>
-			<span class="dashicons dashicons-megaphone"></span>
-			<?php esc_html_e( 'Create Social Post', 'site-essentials' ); ?>
-		</button>
-
-		<?php if ( $last_trigger ) : ?>
-			<p class="scos-sa-last-trigger">
-				<?php
-				printf(
-					/* translators: %s = time ago */
-					esc_html__( 'Last sent: %s ago', 'site-essentials' ),
-					esc_html( human_time_diff( strtotime( $last_trigger ), current_time( 'timestamp' ) ) )
-				);
-				?>
-			</p>
-		<?php endif; ?>
-
-		<div id="scos-sa-status-msg" class="scos-sa-result" hidden></div>
-
-	</div><!-- /trigger -->
 
 	<!-- ── Amplification Status / Re-run ── -->
 	<div class="scos-sa-section scos-sa-section--amplify">
