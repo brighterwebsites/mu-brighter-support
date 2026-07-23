@@ -11,7 +11,6 @@
 	border-bottom: 1px solid #f0f0f1;
 }
 .scos-sa-section:last-child { border-bottom: none; margin-bottom: 0; }
-.scos-sa-section--trigger { padding-top: 2px; }
 
 /* ── Field ── */
 .scos-sa-field { display: flex; flex-direction: column; gap: 5px; }
@@ -43,39 +42,6 @@
 }
 .scos-sa-link-out:hover { color: #135e96; }
 .scos-sa-link-out .dashicons { font-size: 16px; width: 16px; height: 16px; }
-
-/* ── Status notices ── */
-.scos-sa-status {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-size: 12px;
-	padding: 7px 10px;
-	border-radius: 3px;
-	margin-bottom: 10px;
-}
-.scos-sa-status .dashicons { font-size: 14px; width: 14px; height: 14px; flex-shrink: 0; }
-.scos-sa-status--warn { background: #fff8e5; color: #996800; border-left: 3px solid #dba617; }
-.scos-sa-status--info { background: #f0f6fc; color: #2271b1; border-left: 3px solid #72aee6; }
-.scos-sa-status a { color: inherit; font-weight: 500; }
-
-/* ── Trigger button ── */
-.scos-sa-trigger-btn {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	height: 36px;
-	padding: 0 14px;
-}
-.scos-sa-trigger-btn .dashicons { font-size: 16px; width: 16px; height: 16px; }
-
-/* ── Last trigger time ── */
-.scos-sa-last-trigger {
-	font-size: 11px;
-	color: #8c8f94;
-	margin: 8px 0 0;
-	font-style: italic;
-}
 
 /* ── Result message ── */
 .scos-sa-result {

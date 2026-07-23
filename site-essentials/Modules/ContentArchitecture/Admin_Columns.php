@@ -7,13 +7,13 @@
  * - Quick Edit: pre-populated dropdowns + progress checkboxes
  * - Bulk Edit: "No Change" default, progress replace-if-any-checked
  * - Filters: Topic taxonomy + Purpose meta
- * - Social Post button column (fires bw_trigger_social_webhook AJAX)
  *
  * @package    SiteEssentials
  * @subpackage Modules\ContentArchitecture
  * @since      1.0.0
  *
  * v1.1 | 2026-05-22 — scos_ca_intent_goal column now shows linked FAQ title + incomplete badge.
+ * v1.2 | 2026-07-21 — Remove Social column (Make.com trigger button, deprecated/unused on all sites).
  */
 
 namespace SiteEssentials\Modules\ContentArchitecture;
@@ -37,7 +37,6 @@ class Admin_Columns {
 		'scos_ca_pillar',
 		'scos_ca_pathway',
 		'scos_ca_intent_goal',
-		'scos_sa_social',
 	];
 
 	public static function init() {
@@ -83,9 +82,6 @@ class Admin_Columns {
 				$new['scos_ca_pillar']      = __( 'Pillar', 'site-essentials' );
 				$new['scos_ca_pathway']     = __( 'Pathway', 'site-essentials' );
 				$new['scos_ca_intent_goal'] = __( 'Primary Intent', 'site-essentials' );
-				if ( defined( 'SCOS_SA_ACTIVE' ) ) {
-					$new['scos_sa_social'] = __( 'Social', 'site-essentials' );
-				}
 			}
 		}
 		return $new;
@@ -330,25 +326,6 @@ class Admin_Columns {
 				}
 				break;
 
-			case 'scos_sa_social':
-				if ( ! defined( 'SCOS_SA_ACTIVE' ) ) { break; }
-				$last  = get_post_meta( $post_id, '_bw_social_last_trigger', true );
-				$title = $last
-					? sprintf( __( 'Last sent: %s ago', 'site-essentials' ), human_time_diff( strtotime( $last ) ) )
-					: __( 'Create Social Post', 'site-essentials' );
-				printf(
-					'<button type="button" class="scos-col-social-btn" data-post-id="%d" data-nonce="%s" title="%s"><span class="dashicons dashicons-share"></span></button>',
-					$post_id,
-					esc_attr( wp_create_nonce( 'bw_social_webhook' ) ),
-					esc_attr( $title )
-				);
-				if ( $last ) {
-					printf(
-						'<span class="scos-col-social-meta">%s</span>',
-						esc_html( human_time_diff( strtotime( $last ) ) . ' ago' )
-					);
-				}
-				break;
 		}
 	}
 
@@ -890,15 +867,5 @@ class Admin_Columns {
 			true
 		);
 
-		wp_localize_script( 'scos-ca-admin-columns', 'scosCols', [
-			'ajaxurl' => admin_url( 'admin-ajax.php' ),
-			'nonce'   => wp_create_nonce( 'bw_social_webhook' ),
-			'i18n'    => [
-				'sending' => __( 'Sending…', 'site-essentials' ),
-				'sent'    => __( 'Sent!', 'site-essentials' ),
-				'error'   => __( 'Error', 'site-essentials' ),
-				'justNow' => __( 'just now', 'site-essentials' ),
-			],
-		] );
 	}
 }

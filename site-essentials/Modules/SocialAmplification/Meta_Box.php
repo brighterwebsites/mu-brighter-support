@@ -5,11 +5,7 @@
  * Registers a "Social Amplification" meta box on all supported post types.
  * Handles:
  *  - scos_sa_shortlink_slug save (_bw_breadcrumb dual-write removed — consumers now read scos_sa_shortlink_slug first)
- *  - Enqueues JS for the Create Social Post button
- *
- * The button delegates to the existing bw_trigger_social_webhook AJAX action
- * (defined in BW_Social_Webhook_Manual::ajax_trigger_webhook) so the underlying
- * Make.com webhook logic remains unchanged.
+ *  - Enqueues JS for the Postly "Create Social Post" / "Reset & Re-amplify" trigger
  *
  * @package    SiteEssentials
  * @subpackage Modules\SocialAmplification
@@ -17,6 +13,7 @@
  *
  * v1.0 | 2026-05-01
  * v1.1 | 2026-06-29 — Remove _bw_breadcrumb dual-write; consumers now read scos_sa_shortlink_slug first.
+ * v1.2 | 2026-07-21 — Remove Make.com webhook trigger button/UI (deprecated, unused on all sites).
  */
 
 namespace SiteEssentials\Modules\SocialAmplification;
@@ -51,7 +48,7 @@ class Meta_Box {
 	}
 
 	/**
-	 * Remove legacy brighter-core "🚀 Social Amplification" and old breadcrumb slug box when superseded.
+	 * Remove legacy brighter-core breadcrumb slug meta box when superseded.
 	 *
 	 * @since 1.0.0
 	 * @param string $post_type Current post type on the edit screen.
@@ -62,7 +59,6 @@ class Meta_Box {
 		}
 		$contexts = [ 'normal', 'side', 'advanced' ];
 		foreach ( $contexts as $ctx ) {
-			remove_meta_box( 'bw_social_webhook_trigger', $post_type, $ctx );
 			remove_meta_box( 'bw_breadcrumb_meta', $post_type, $ctx );
 		}
 	}
@@ -78,8 +74,6 @@ class Meta_Box {
 			$shortlink_slug = get_post_meta( $post->ID, '_bw_breadcrumb', true );
 		}
 
-		$last_trigger   = get_post_meta( $post->ID, '_bw_social_last_trigger', true );
-		$webhook_url    = SocialAmplification_Module::get_option( 'scos_sma_webhook_url', 'bw_social_webhook_url' );
 		$is_published   = ( 'publish' === $post->post_status );
 		$yourls_api_url = rtrim( SocialAmplification_Module::get_option( 'scos_sma_yourls_url', 'bw_yourls_api_url' ), '/' );
 		$yourls_base    = $yourls_api_url
@@ -140,16 +134,13 @@ class Meta_Box {
 			true
 		);
 		wp_localize_script( 'scos-sa-meta-box', 'scosSA', [
-			'nonce'        => wp_create_nonce( 'bw_social_webhook' ),
 			'amplifyNonce' => wp_create_nonce( 'scos_sa_amplify' ),
 			'ajaxurl'      => admin_url( 'admin-ajax.php' ),
 			'settingsUrl'  => admin_url( 'admin.php?page=site-essentials-social-amplification&scos_sma_tab=postly#postly' ),
 			'i18n'         => [
-				'sending'    => __( 'Sending…', 'site-essentials' ),
-				'sent'       => __( 'Sent!', 'site-essentials' ),
-				'create'     => __( 'Create Social Post', 'site-essentials' ),
 				'error'      => __( 'Error', 'site-essentials' ),
 				'reAmplify'  => __( 'Reset & Re-amplify', 'site-essentials' ),
+				'create'     => __( 'Create Social Post', 'site-essentials' ),
 				'amplifying' => __( 'Running…', 'site-essentials' ),
 				'configError' => __( 'AI knowledge not configured. Set up Anthropic API key and knowledge files in', 'site-essentials' ),
 				'settingsLink' => __( 'Social Amplification settings', 'site-essentials' ),

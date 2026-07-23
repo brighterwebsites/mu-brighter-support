@@ -173,7 +173,6 @@ X-Brighter-Token: <?php echo $has_token ? esc_html( substr( $token, 0, 8 ) ) . '
 				<tr><th><code>GET /faqs</code></th><td><?php esc_html_e( 'All FAQ entries', 'site-essentials' ); ?></td></tr>
 				<tr><th><code>GET /faqs/search?q=</code></th><td><?php esc_html_e( 'Search FAQs by keyword', 'site-essentials' ); ?></td></tr>
 				<tr><th><code>GET /faqs/export</code></th><td><?php esc_html_e( 'Export FAQs (admin only)', 'site-essentials' ); ?></td></tr>
-				<tr><th><code>GET /social-amplification/talking-points</code></th><td><?php esc_html_e( 'Post Framing entries', 'site-essentials' ); ?></td></tr>
 			</tbody>
 		</table>
 	</div>
@@ -193,14 +192,6 @@ X-Brighter-Token: <?php echo $has_token ? esc_html( substr( $token, 0, 8 ) ) . '
 					<td>
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=site-essentials-social-amplification&tab=yourls' ) ); ?>">
 							<?php esc_html_e( 'Social Amplification → YOURLS Settings', 'site-essentials' ); ?>
-						</a>
-					</td>
-				</tr>
-				<tr>
-					<th>Make.com</th>
-					<td>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=site-essentials-social-amplification&tab=makecom' ) ); ?>">
-							<?php esc_html_e( 'Social Amplification → Make.com Settings', 'site-essentials' ); ?>
 						</a>
 					</td>
 				</tr>

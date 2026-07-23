@@ -6,7 +6,10 @@
  *
  * @package BrighterCore
  * @subpackage API
- * @version 1.0.0
+ * @version 1.1.0
+ *
+ * v1.1 | 2026-07-21 — Deprecated Make.com social webhook/talking-points/API removed
+ *                      (unused on all sites). YOURLS helper retained for Postly pipeline.
  */
 
 if (!defined('ABSPATH')) exit;
@@ -27,21 +30,6 @@ class Brighter_API {
      * @var Brighter_API_Admin Admin interface
      */
     private $admin;
-
-    /**
-     * @var BW_Talking_Points Talking points manager
-     */
-    private $talking_points;
-
-    /**
-     * @var BW_Social_Amplification_API Social amplification API
-     */
-    private $social_amplification_api;
-
-    /**
-     * @var BW_Social_Webhook_Trigger Webhook trigger
-     */
-    private $webhook_trigger;
 
     /**
      * @var Brighter_API Singleton instance
@@ -80,23 +68,10 @@ class Brighter_API {
         require_once $api_path . 'class-brighter-api-endpoints.php';
         require_once $api_path . 'class-brighter-api-admin.php';
 
-        // Social amplification components
-        require_once $social_path . 'class-talking-points.php';
-        require_once $social_path . 'class-yourls-helper.php'; // YOURLS API helper (required by API)
-        require_once $social_path . 'class-social-amplification-api.php';
-        require_once $social_path . 'class-webhook-trigger.php';
-        require_once $social_path . 'class-webhook-settings.php';
-        
-        // Manual trigger UI (buttons) - check if file exists to prevent fatal errors
-        $manual_file = $social_path . 'class-social-webhook-manual.php';
-        
-        if (file_exists($manual_file)) {
-            require_once $manual_file;
-        } else {
-            // Only log if file is missing (error condition)
-            error_log('BW Social: ERROR - class-social-webhook-manual.php NOT FOUND at: ' . $manual_file);
-        }
-        
+        // Social amplification components (Make.com webhook/talking-points/API removed —
+        // deprecated 2026-07-21, no longer used on any site. YOURLS helper stays: the
+        // Postly amplification pipeline in site-essentials calls it directly.)
+        require_once $social_path . 'class-yourls-helper.php'; // YOURLS API helper (required by Postly amplification)
         require_once $social_path . 'class-breadcrumbs-meta.php';
         require_once $social_path . 'class-content-type-helper.php';
     }
@@ -114,26 +89,10 @@ class Brighter_API {
         // Initialize admin interface with auth dependency
         $this->admin = new Brighter_API_Admin($this->auth);
 
-        // Initialize social amplification
-        $this->talking_points = new BW_Talking_Points();
-        $this->talking_points->init();
-
-        $this->social_amplification_api = new BW_Social_Amplification_API($this->auth, $this->talking_points);
-
-        $this->webhook_trigger = new BW_Social_Webhook_Trigger();
-        $this->webhook_trigger->init();
-        
-        // Make webhook trigger globally accessible for manual triggers
-        global $bw_social_webhook_trigger;
-        $bw_social_webhook_trigger = $this->webhook_trigger;
-
         // Initialize breadcrumbs meta (admin only)
         if (is_admin()) {
             $breadcrumbs_meta = new BW_Breadcrumbs_Meta();
             $breadcrumbs_meta->init();
-
-            $webhook_settings = new BW_Social_Webhook_Settings();
-            $webhook_settings->init();
         }
     }
 
@@ -143,7 +102,6 @@ class Brighter_API {
     private function register_hooks() {
         // Register REST routes
         add_action('rest_api_init', array($this->endpoints, 'register_routes'));
-        add_action('rest_api_init', array($this->social_amplification_api, 'register_routes'));
 
         // Initialize admin interface
         if (is_admin()) {

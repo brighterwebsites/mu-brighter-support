@@ -44,60 +44,6 @@
 	font-size: 12px;
 }
 
-/* Timestamp under social button */
-.scos-col-social-meta {
-	display: block;
-	font-size: 10px;
-	color: #9ca3af;
-	margin-top: 2px;
-}
-
-/* ---- Social post button ---- */
-.scos-col-social-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	border-radius: 4px;
-	background: #f0fdf4;
-	border: 1px solid #bbf7d0;
-	color: #15803d;
-	cursor: pointer;
-	transition: background .15s, color .15s, transform .1s;
-	padding: 0;
-}
-
-.scos-col-social-btn .dashicons {
-	font-size: 16px;
-	width: 16px;
-	height: 16px;
-}
-
-.scos-col-social-btn:hover {
-	background: #dcfce7;
-	color: #166534;
-	border-color: #86efac;
-}
-
-.scos-col-social-btn.is-sending {
-	opacity: .6;
-	cursor: wait;
-}
-
-.scos-col-social-btn.is-sent {
-	background: #166534;
-	color: #fff;
-	border-color: #166534;
-	transform: scale(1.05);
-}
-
-.scos-col-social-btn.is-error {
-	background: #fee2e2;
-	color: #b91c1c;
-	border-color: #fca5a5;
-}
-
 /* ---- Filter dropdowns ---- */
 .scos-col-filter {
 	margin: 0 4px 0 0;
@@ -248,8 +194,7 @@ label:has( select[name="scos_ca_be_pillar_page_id"] ) {
 }
 
 /* Tighten column widths for our narrow columns */
-.column-scos_ca_index,
-.column-scos_sa_social {
+.column-scos_ca_index {
 	width: 80px;
 }
 

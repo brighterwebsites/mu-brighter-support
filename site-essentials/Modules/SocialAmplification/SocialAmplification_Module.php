@@ -3,19 +3,18 @@
  * Social Amplification Module
  *
  * Per-page social amplification panel:
- *  - YOURLS shortlink slug  (scos_sa_shortlink_slug / scos_sma_pf_* for Post Framing)
- *  - "Create Social Post" button (triggers existing bw_trigger_social_webhook AJAX action)
- *  - Webhook status / last trigger time
+ *  - YOURLS shortlink slug (scos_sa_shortlink_slug)
+ *  - Postly.ai amplification pipeline (AI captions, scheduling, backfill)
  *
- * Defines SCOS_SA_ACTIVE to gate legacy BW_Social_Webhook_Manual meta box and
- * its admin columns so they don't duplicate the new UI.
- *
- * Options are now saved under the scos_sma_ prefix; values are dual-written to
- * legacy bw_* keys so existing webhook/YOURLS code continues to work.
+ * Options are saved under the scos_sma_ prefix; YOURLS values are dual-written to
+ * legacy bw_yourls_* keys so BW_YOURLS_Helper continues to work without changes.
  *
  * @package    SiteEssentials
  * @subpackage Modules\SocialAmplification
- * @version    1.3 | 2026-07-01
+ * @version    1.4 | 2026-07-21
+ *
+ * v1.4 | 2026-07-21 — Removed Post Framing CPT + Make.com webhook trigger
+ *                      (deprecated, unused on all sites). Postly pipeline unaffected.
  */
 
 namespace SiteEssentials\Modules\SocialAmplification;
@@ -37,7 +36,7 @@ class SocialAmplification_Module implements Module_Interface {
 	}
 
 	public static function get_description() {
-		return __( 'YOURLS shortlink slug, Post Framing templates, and manual Make.com webhook trigger for social post creation.', 'site-essentials' );
+		return __( 'YOURLS shortlink slug and Postly.ai amplification pipeline for automated social post creation.', 'site-essentials' );
 	}
 
 	public static function get_tier() {
@@ -49,7 +48,7 @@ class SocialAmplification_Module implements Module_Interface {
 	}
 
 	public static function get_version() {
-		return '1.1.0';
+		return '1.2.0';
 	}
 
 	public function init() {
@@ -60,7 +59,6 @@ class SocialAmplification_Module implements Module_Interface {
 		require_once __DIR__ . '/Post_Type_Config.php';
 		require_once __DIR__ . '/Meta_Fields.php';
 		require_once __DIR__ . '/Meta_Box.php';
-		require_once __DIR__ . '/Post_Framing.php';
 		require_once __DIR__ . '/Admin_Columns.php';
 
 		// ── Postly.ai amplification pipeline ──────────────────────────────
@@ -73,7 +71,6 @@ class SocialAmplification_Module implements Module_Interface {
 
 		Meta_Fields::init();
 		Meta_Box::init();
-		Post_Framing::init();
 		Admin_Columns::init();
 		Amplification\REST_Endpoint::init();
 		Amplification\Backfill_Endpoint::init();
@@ -87,8 +84,10 @@ class SocialAmplification_Module implements Module_Interface {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			require_once __DIR__ . '/CLI/Backfill_Command.php';
 			require_once __DIR__ . '/CLI/Send_Post_Command.php';
+			require_once __DIR__ . '/CLI/Cleanup_Make_Command.php';
 			\WP_CLI::add_command( 'scos-social backfill', CLI\Backfill_Command::class );
 			\WP_CLI::add_command( 'scos-social sendpost', CLI\Send_Post_Command::class );
+			\WP_CLI::add_command( 'scos-social cleanup-make', CLI\Cleanup_Make_Command::class );
 		}
 
 		// WP Abilities API — category + send-social-post ability
@@ -123,8 +122,6 @@ class SocialAmplification_Module implements Module_Interface {
 		}
 
 		$map = [
-			'bw_social_webhook_url'       => 'scos_sma_webhook_url',
-			'bw_social_webhook_enabled'   => 'scos_sma_webhook_enabled',
 			'bw_yourls_api_url'           => 'scos_sma_yourls_url',
 			'bw_yourls_signature'         => 'scos_sma_yourls_signature',
 			'bw_yourls_username'          => 'scos_sma_yourls_username',
@@ -152,8 +149,8 @@ class SocialAmplification_Module implements Module_Interface {
 	/**
 	 * Get a Social Amplification option, preferring scos_sma_* over legacy bw_* keys.
 	 *
-	 * @param string $scos_key   e.g. 'scos_sma_webhook_url'
-	 * @param string $legacy_key e.g. 'bw_social_webhook_url'
+	 * @param string $scos_key   e.g. 'scos_sma_yourls_url'
+	 * @param string $legacy_key e.g. 'bw_yourls_api_url'
 	 * @param mixed  $default
 	 * @return mixed
 	 */
