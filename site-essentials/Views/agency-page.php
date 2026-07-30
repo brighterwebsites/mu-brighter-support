@@ -3,6 +3,10 @@
  * Agency white label settings page (se_agency_* options).
  *
  * @package SiteEssentials
+ * @version 1.1
+ *
+ * v1.1 | 2026-07-30 — Access tab login redirect fields show role defaults as
+ *                     placeholders instead of pre-filled values.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -555,10 +559,17 @@ $page_url = admin_url( 'admin.php' );
 
 		<?php elseif ( 'access' === $active_tab ) : ?>
 
+			<?php
+			// Leaving a field empty falls back to these, so show them as placeholders
+			// rather than pre-filled values — a pre-filled default is indistinguishable
+			// from a saved choice and gets persisted on the next save.
+			$support_default   = admin_url( 'admin.php?page=site-essentials-support' );
+			$dashboard_default = admin_url();
+			?>
 			<div class="scos-card">
 				<div class="scos-card__header">
 					<h2 class="scos-card__title"><?php esc_html_e( 'Login redirects', 'site-essentials' ); ?></h2>
-					<p class="scos-card__desc"><?php esc_html_e( 'Where users land after logging in.', 'site-essentials' ); ?></p>
+					<p class="scos-card__desc"><?php esc_html_e( 'Where users land after logging in. Must be a URL on this site — off-site URLs are discarded.', 'site-essentials' ); ?></p>
 				</div>
 				<div class="scos-card__body">
 					<table class="scos-form">
@@ -570,7 +581,9 @@ $page_url = admin_url( 'admin.php' );
 								</th>
 								<td>
 									<input type="url" id="se_agency_login_redirect_admin" name="se_agency_login_redirect_admin" class="scos-input"
-										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_admin', admin_url( 'admin.php?page=site-essentials-support' ) ) ); ?>" />
+										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_admin', '' ) ); ?>"
+										placeholder="<?php echo esc_attr( $support_default ); ?>" />
+									<p class="description"><?php esc_html_e( 'Leave empty to use the Support hub.', 'site-essentials' ); ?></p>
 								</td>
 							</tr>
 							<tr>
@@ -580,7 +593,9 @@ $page_url = admin_url( 'admin.php' );
 								</th>
 								<td>
 									<input type="url" id="se_agency_login_redirect_editor" name="se_agency_login_redirect_editor" class="scos-input"
-										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_editor', admin_url( 'admin.php?page=site-essentials-support' ) ) ); ?>" />
+										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_editor', '' ) ); ?>"
+										placeholder="<?php echo esc_attr( $dashboard_default ); ?>" />
+									<p class="description"><?php esc_html_e( 'Leave empty to use the standard WordPress dashboard.', 'site-essentials' ); ?></p>
 								</td>
 							</tr>
 							<tr> <?php // SCOS-SUPPORT-PASS2 — shop_manager redirect field added ?>
@@ -590,8 +605,9 @@ $page_url = admin_url( 'admin.php' );
 								</th>
 								<td>
 									<input type="url" id="se_agency_login_redirect_shop_manager" name="se_agency_login_redirect_shop_manager" class="scos-input"
-										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_shop_manager', admin_url( 'admin.php?page=site-essentials-support' ) ) ); ?>"
-										placeholder="<?php echo esc_attr( admin_url( 'admin.php?page=site-essentials-support' ) ); ?>" />
+										value="<?php echo esc_url( get_option( 'se_agency_login_redirect_shop_manager', '' ) ); ?>"
+										placeholder="<?php echo esc_attr( $support_default ); ?>" />
+									<p class="description"><?php esc_html_e( 'Leave empty to use the Support hub.', 'site-essentials' ); ?></p>
 								</td>
 							</tr>
 						</tbody>

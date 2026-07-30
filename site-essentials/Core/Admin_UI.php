@@ -7,9 +7,13 @@
  *
  * @package    SiteEssentials
  * @subpackage Core
- * @version    1.1.0
+ * @version    1.1.1
  * @since      1.0.0
  *
+ * v1.1.1 | 2026-07-30 — Support hub menu registered for editor/shop_manager (was
+ *                      manage_options only, which blocked admin.php before the
+ *                      render callback's role check). Access tab login redirects
+ *                      validated through scos_agency_sanitize_login_redirect().
  * v1.1 | 2026-07-21 — Remove Make.com webhook save handling from save_sma_settings()
  *                      (deprecated, unused on all sites).
  */
@@ -55,6 +59,14 @@ class Admin_UI {
     const SUPPORT_PAGE_SLUG     = 'site-essentials-support';
     const AGENCY_PAGE_SLUG      = 'site-essentials-agency';
     const AGENTIC_PAGE_SLUG     = 'site-essentials-agentic';
+
+    /**
+     * Roles allowed to view the read-only Support hub.
+     *
+     * @since 1.1.1
+     * @var   string[]
+     */
+    const SUPPORT_PAGE_ROLES = [ 'administrator', 'editor', 'shop_manager' ];
 
     /** Legacy Support → Schema (bw-schema-admin); removed from brighter-core — redirect here. */
     private const LEGACY_BRIGHTER_SCHEMA_PAGE = 'brighter-schema';
@@ -235,11 +247,14 @@ class Admin_UI {
             30                                                   // Position
         );
 
-        // Top-level Support shell — highest priority, near top of admin menu
+        // Top-level Support shell — highest priority, near top of admin menu.
+        // Registered per-role: admin.php refuses to load a page the current user's
+        // capability can't reach, so gating on manage_options here locked editors and
+        // shop managers out before render_support_page() ever ran.
         add_menu_page(
             __( 'Support', 'site-essentials' ),
             __( 'Support', 'site-essentials' ),
-            'manage_options',
+            self::current_user_can_view_support() ? 'read' : 'do_not_allow',
             self::SUPPORT_PAGE_SLUG,
             [ $this, 'render_support_page' ],
             'dashicons-sos',
@@ -565,14 +580,23 @@ class Admin_UI {
      */
     public function render_support_page() {
         // SCOS-SUPPORT-PASS2 — multi-role support page access
-        $allowed_roles = [ 'administrator', 'editor', 'shop_manager' ];
-        $user          = wp_get_current_user();
-        $has_access    = (bool) array_intersect( $allowed_roles, (array) $user->roles );
-        if ( ! $has_access ) {
+        if ( ! self::current_user_can_view_support() ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'site-essentials' ) );
         }
 
         include SITE_ESSENTIALS_PATH . 'Views/support-page.php';
+    }
+
+    /**
+     * Whether the current user holds a role allowed to view the Support hub.
+     *
+     * @since 1.1.1
+     * @return bool
+     */
+    public static function current_user_can_view_support() {
+        $user = wp_get_current_user();
+
+        return (bool) array_intersect( self::SUPPORT_PAGE_ROLES, (array) $user->roles );
     }
 
     /**
@@ -627,12 +651,20 @@ class Admin_UI {
             }
 
             if ( 'access' === $post_tab ) {
-                $redir_admin        = isset( $_POST['se_agency_login_redirect_admin'] ) ? esc_url_raw( wp_unslash( $_POST['se_agency_login_redirect_admin'] ) ) : '';
-                $redir_editor       = isset( $_POST['se_agency_login_redirect_editor'] ) ? esc_url_raw( wp_unslash( $_POST['se_agency_login_redirect_editor'] ) ) : '';
-                $redir_shop_manager = isset( $_POST['se_agency_login_redirect_shop_manager'] ) ? esc_url_raw( wp_unslash( $_POST['se_agency_login_redirect_shop_manager'] ) ) : ''; // SCOS-SUPPORT-PASS2 — shop_manager redirect field added
-                update_option( 'se_agency_login_redirect_admin', $redir_admin );
-                update_option( 'se_agency_login_redirect_editor', $redir_editor );
-                update_option( 'se_agency_login_redirect_shop_manager', $redir_shop_manager ); // SCOS-SUPPORT-PASS2 — shop_manager redirect field added
+                // SCOS-SUPPORT-PASS2 — shop_manager redirect field added
+                $redirect_keys = [
+                    'se_agency_login_redirect_admin',
+                    'se_agency_login_redirect_editor',
+                    'se_agency_login_redirect_shop_manager',
+                ];
+                foreach ( $redirect_keys as $key ) {
+                    $value = isset( $_POST[ $key ] ) ? esc_url_raw( wp_unslash( $_POST[ $key ] ) ) : '';
+                    // Rejects off-site targets, so an empty value always means "use the role default".
+                    if ( function_exists( 'scos_agency_sanitize_login_redirect' ) ) {
+                        $value = scos_agency_sanitize_login_redirect( $value );
+                    }
+                    update_option( $key, $value );
+                }
             }
 
             wp_safe_redirect(
