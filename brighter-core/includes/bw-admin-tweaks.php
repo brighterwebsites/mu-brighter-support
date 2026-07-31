@@ -5,9 +5,12 @@
  * File: custom-admin.php
  * Purpose: Enhancements and modifications to the WordPress admin UI.
  *
- * Version: 4.1.0
+ * Version: 4.1.1 | 2026-07-30
  *
  * Changelog:
+ * 4.1.1 - FIXED: login_redirect double-prefixed absolute URLs with admin_url(), causing
+ *         /wp-admin/https:/site/wp-admin/ 404s. Editors now fall back to the dashboard
+ *         instead of the Support hub when no redirect is configured.
  * 4.1.0 - CLEANED: Removed optimization status (moved to bw-content-strategy.php)
  * 4.0.0 - Initial version
  *
@@ -85,7 +88,35 @@ add_action('wp_footer', function() {
 });
 
 /**
- * Redirect all users to Brighter Support page on login
+ * Resolve a stored se_agency_login_redirect_* value to a safe absolute URL.
+ *
+ * Stored values are absolute URLs (the Access tab uses <input type="url">), but
+ * older or hand-edited values may be root-relative ("/wp-admin/edit.php") or
+ * admin-relative ("admin.php?page=foo"). Only the admin-relative form needs
+ * admin_url() prefixing — prefixing an already-absolute URL produced the
+ * https://site/wp-admin/https://site/wp-admin/ 404. Off-site targets are
+ * rejected by wp_validate_redirect() and fall through to $fallback.
+ *
+ * @param string $url      Raw option value.
+ * @param string $fallback Absolute URL used when $url is empty or off-site.
+ * @return string
+ */
+function bw_resolve_login_redirect( $url, $fallback ) {
+    $url = trim( (string) $url );
+
+    if ( '' === $url ) {
+        return $fallback;
+    }
+
+    $is_complete = (bool) preg_match( '#^(https?:)?//#i', $url ) || '/' === $url[0];
+    $candidate   = $is_complete ? $url : admin_url( $url );
+    $validated   = wp_validate_redirect( $candidate, '' );
+
+    return '' !== $validated ? $validated : $fallback;
+}
+
+/**
+ * Redirect users to their configured landing page on login
  * Compatible with WPGhost redirect override
  */
 // SCOS-SUPPORT-PASS2 — login redirect wired to Agency Access tab options
@@ -100,22 +131,20 @@ function bw_redirect_to_support_page( $redirect_to, $request, $user ) {
     set_transient( 'bw_backup_reminder_' . $user->ID, true, 60 );
 
     // SCOS-SUPPORT-PASS2 — removed hardcoded redirect, now controlled via Agency > Access tab
-    $fallback = admin_url( 'admin.php?page=site-essentials-support' ); // SCOS-SUPPORT-PASS2 — updated fallback from brighter_support to site-essentials-support
-    $roles    = (array) $user->roles;
+    $support   = admin_url( 'admin.php?page=site-essentials-support' ); // SCOS-SUPPORT-PASS2 — updated fallback from brighter_support to site-essentials-support
+    $dashboard = admin_url();
+    $roles     = (array) $user->roles;
 
     if ( in_array( 'administrator', $roles, true ) ) { // SCOS-SUPPORT-PASS2 — administrator redirect
-        $url = get_option( 'se_agency_login_redirect_admin', '' );
-        return $url ? admin_url( ltrim( $url, '/' ) ) : $fallback;
+        return bw_resolve_login_redirect( get_option( 'se_agency_login_redirect_admin', '' ), $support );
     }
 
     if ( in_array( 'shop_manager', $roles, true ) ) { // SCOS-SUPPORT-PASS2 — shop_manager redirect
-        $url = get_option( 'se_agency_login_redirect_shop_manager', '' );
-        return $url ? admin_url( ltrim( $url, '/' ) ) : $fallback;
+        return bw_resolve_login_redirect( get_option( 'se_agency_login_redirect_shop_manager', '' ), $support );
     }
 
     if ( in_array( 'editor', $roles, true ) ) { // SCOS-SUPPORT-PASS2 — editor redirect
-        $url = get_option( 'se_agency_login_redirect_editor', '' );
-        return $url ? admin_url( ltrim( $url, '/' ) ) : $fallback;
+        return bw_resolve_login_redirect( get_option( 'se_agency_login_redirect_editor', '' ), $dashboard );
     }
 
     return $redirect_to;
