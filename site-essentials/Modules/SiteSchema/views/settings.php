@@ -2,11 +2,10 @@
 /**
  * Site Schema Module — settings view.
  *
- * v1.3 | 2026-06-18
+ * v1.4 | 2026-08-03 — Document WooCommerce schema tokens
  *
  * Tabbed panel: Local Business | Success Stories | Product | Service
  * SCOS design system: scos__header, scos__tabs, scos-card, scos-form.
- * No functional changes — option keys, nonces, form ID, and JS hooks unchanged.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -307,9 +306,16 @@ $current_guide = isset( $guide_urls[ $current_tab ] ) ? $guide_urls[ $current_ta
 			<li><code>%%post_author%%</code>, <code>%%post_thumbnail_url%%</code></li>
 			<li><code>%%site_name%%</code>, <code>%%site_url%%</code></li>
 			<li><code>%%_cmeta_meta_key%%</code> &mdash; <?php esc_html_e( 'Custom post meta', 'site-essentials' ); ?></li>
+			<li><code>%%_cmeta__sku%%</code> &mdash; <?php esc_html_e( 'WooCommerce SKU via post meta (_sku)', 'site-essentials' ); ?></li>
 			<li><code>%%_cmeta_options_option_key%%</code> &mdash; <?php esc_html_e( 'WordPress option value (allowed option name prefixes: se_, scos_, site_essentials_; works in site-wide schema without a post)', 'site-essentials' ); ?></li>
 			<li><code>%%_acf_field_name%%</code> &mdash; <?php esc_html_e( 'ACF field', 'site-essentials' ); ?></li>
 			<li><code>%%date_year_ahead%%</code> &mdash; <?php esc_html_e( 'ISO date one year from today — use for priceValidUntil', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_price%%</code> &mdash; <?php esc_html_e( 'WooCommerce active price (sale if on sale, else regular)', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_sku%%</code> &mdash; <?php esc_html_e( 'WooCommerce SKU (preferred over %%_cmeta__sku%%)', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_category%%</code> &mdash; <?php esc_html_e( 'First product_cat term name', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_availability%%</code> &mdash; <?php esc_html_e( 'Schema.org availability URL from stock status (InStock / OutOfStock / BackOrder)', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_currency%%</code> &mdash; <?php esc_html_e( 'Store currency code (e.g. AUD)', 'site-essentials' ); ?></li>
+			<li><code>%%_woo_offers_json%%</code> &mdash; <?php esc_html_e( 'Full Offer object (price, currency, availability, url, sku)', 'site-essentials' ); ?></li>
 			<li><code>%%_scos_review_cards_json%%</code> &mdash; <?php esc_html_e( 'Array of Review objects from ScosReviewCard elements on the page (specific mode only)', 'site-essentials' ); ?></li>
 			<li><code>%%_scos_aggregate_rating_json%%</code> &mdash; <?php esc_html_e( 'AggregateRating object — count and average across all published reviews', 'site-essentials' ); ?></li>
 		</ul>

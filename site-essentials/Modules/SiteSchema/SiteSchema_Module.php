@@ -14,7 +14,7 @@
  * @package    SiteEssentials
  * @subpackage Modules\SiteSchema
  * @since      1.0.0
- * v1.1 | 2026-06-24
+ * v1.2 | 2026-08-03 — WooCommerce schema tokens (price, sku, category, availability, currency, offers)
  */
 
 namespace SiteEssentials\Modules\SiteSchema;
@@ -48,7 +48,7 @@ class SiteSchema_Module implements Module_Interface {
 	}
 
 	public static function get_version() {
-		return '1.0.0';
+		return '1.2.0';
 	}
 
 	public function init() {
@@ -66,6 +66,9 @@ class SiteSchema_Module implements Module_Interface {
 			require_once $meta_box_file;
 			\SiteEssentials\Modules\SeoSchema\Meta_Box::init();
 		}
+
+		require_once __DIR__ . '/Woo_Schema_Tokens.php';
+		Woo_Schema_Tokens::register();
 
 		add_action( 'admin_init', [ __CLASS__, 'run_migration' ], 5 );
 		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
