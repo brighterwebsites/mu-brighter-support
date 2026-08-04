@@ -940,6 +940,16 @@ class Admin_UI {
             ! empty( $_POST['scos_agentic_markdown_enabled'] ) ? 1 : 0
         );
 
+        update_option(
+            'scos_agentic_webmcp_enabled',
+            ! empty( $_POST['scos_agentic_webmcp_enabled'] ) ? 1 : 0
+        );
+
+        update_option(
+            'scos_agentic_webmcp_page_id',
+            absint( $_POST['scos_agentic_webmcp_page_id'] ?? 0 )
+        );
+
         wp_safe_redirect(
             add_query_arg(
                 [
