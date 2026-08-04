@@ -12,6 +12,8 @@
  * v1.0 | 2026-05-01
  * v1.1 | 2026-06-29 — Remove bw_custom_schema dual-write; scos-schema-output.php now reads scos_schema_custom first.
  * v1.2 | 2026-07-15 — Remove bw_custom_schema fallback read; migration confirmed complete on all sites.
+ * v1.3 | 2026-07-24 — Stop excluding 'product' from fallback post type list (only
+ *                      used when ContentArchitecture module is inactive).
  */
 
 namespace SiteEssentials\Modules\SeoSchema;
@@ -44,7 +46,8 @@ class Meta_Box {
 		$exclude = [
 			'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset',
 			'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part',
-			'product', 'product_variation', 'shop_order', 'shop_coupon',
+			// 'product' intentionally included — tracked as editorial content.
+			'product_variation', 'shop_order', 'shop_coupon',
 		];
 		return array_values( array_diff( get_post_types( [ 'public' => true ], 'names' ), $exclude ) );
 	}

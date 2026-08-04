@@ -5,6 +5,9 @@
  * @package    SiteEssentials
  * @subpackage Modules\SocialAmplification
  * @since      1.0.0
+ *
+ * v1.1 | 2026-07-24 — Stop excluding 'product' from fallback post type list (only
+ *                      used when ContentArchitecture module is inactive).
  */
 
 namespace SiteEssentials\Modules\SocialAmplification;
@@ -46,7 +49,8 @@ class Meta_Fields {
 		$exclude = [
 			'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset',
 			'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part',
-			'product', 'product_variation', 'shop_order', 'shop_coupon', 'shop_webhook',
+			// 'product' intentionally included — tracked as editorial content.
+			'product_variation', 'shop_order', 'shop_coupon', 'shop_webhook',
 		];
 		return array_values( array_diff( get_post_types( [ 'public' => true ], 'names' ), $exclude ) );
 	}

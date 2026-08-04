@@ -13,6 +13,11 @@
  * @package    SiteEssentials
  * @subpackage Modules\ContentArchitecture
  * @since      1.0.0
+ *
+ * v1.1 | 2026-07-24 — Stop excluding 'product' from supported post types; WooCommerce
+ *                      products should be tracked as editorial content like any other
+ *                      public post type. Only non-editorial WooCommerce internals
+ *                      (variations, orders, coupons, webhooks) remain excluded.
  */
 
 namespace SiteEssentials\Modules\ContentArchitecture;
@@ -185,8 +190,8 @@ class Taxonomies {
 			'wp_block',
 			'wp_template',
 			'wp_template_part',
-			// WooCommerce
-			'product',
+			// WooCommerce — 'product' is intentionally included (tracked as editorial
+			// content); only non-editorial WooCommerce internals are excluded.
 			'product_variation',
 			'shop_order',
 			'shop_coupon',

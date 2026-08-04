@@ -9,6 +9,8 @@
  * v1.3 | 2026-07-17 — scos_seo_tldr sanitize_callback: sanitize_textarea_field →
  *                      wp_kses_post, to match Meta_Box::save()'s own sanitizer now
  *                      that the field supports bold/lists via wp_editor().
+ * v1.4 | 2026-07-24 — Stop excluding 'product' from fallback post type list (only
+ *                      used when ContentArchitecture module is inactive).
  */
 
 namespace SiteEssentials\Modules\SeoMeta;
@@ -123,7 +125,8 @@ class Meta_Fields {
 		$exclude = [
 			'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset',
 			'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part',
-			'product', 'product_variation', 'shop_order', 'shop_coupon', 'shop_webhook',
+			// 'product' intentionally included — tracked as editorial content.
+			'product_variation', 'shop_order', 'shop_coupon', 'shop_webhook',
 		];
 		return array_values( array_diff( get_post_types( [ 'public' => true ], 'names' ), $exclude ) );
 	}
