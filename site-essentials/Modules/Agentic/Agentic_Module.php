@@ -2,13 +2,25 @@
 /**
  * Agentic Module
  *
- * v1.1 | 2026-08-04
+ * v1.2 | 2026-08-04
  *
  * Handles AI agent discovery and content accessibility for client sites.
+ *
+ * Content access:
  *   - Markdown content negotiation (Accept: text/markdown)
- *   - scos/v1 REST content API (search, list, content/{slug}, site-info)
- *   - RFC 8288 Link headers for agent discovery
+ *   - scos/v1 REST content API (search, list, content/{slug}, site-info, health)
  *   - WebMCP widget (conditionally loaded on the /mcp/ page)
+ *
+ * Discovery layer — how an agent finds the above without being told:
+ *   - RFC 8288 Link headers (llms.txt, /mcp/, api-catalog)
+ *   - OpenAPI 3.1 description of scos/v1
+ *   - RFC 9727 API Catalog at /.well-known/api-catalog
+ *   - Agent Skills index at /.well-known/agent-skills/index.json
+ *   - MCP Server Card at /.well-known/mcp/server-card.json
+ *
+ * The discovery chain is deliberately layered: Link headers point at the
+ * catalog, the catalog points at the OpenAPI document, and the skills index
+ * carries the procedural knowledge that neither of those can express.
  *
  * @package    SiteEssentials
  * @subpackage Modules\Agentic
@@ -48,7 +60,7 @@ class Agentic_Module implements Module_Interface {
 	}
 
 	public static function get_version(): string {
-		return '1.1';
+		return '1.2';
 	}
 
 	// ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -60,19 +72,33 @@ class Agentic_Module implements Module_Interface {
 
 		Markdown_Renderer::init();
 		Content_API::init();
+		OpenAPI_Spec::init();
 		WebMCP_Widget::init();
+
+		// Discovery layer — the router must init before its consumers register.
+		Well_Known_Router::init();
+		Api_Catalog::init();
+		Agent_Skills::init();
+		Mcp_Server_Card::init();
+
 		add_action( 'send_headers', [ __CLASS__, 'send_link_headers' ] );
 	}
 
 	/**
-	 * Emit RFC 8288 Link headers so agents can discover llms.txt and the /mcp/ page.
+	 * Emit RFC 8288 Link headers advertising the discovery resources.
 	 *
-	 * llms.txt: rel="describedby" — points to the machine-readable site description.
-	 * /mcp/:    rel="service-doc" — points to the human+agent-readable MCP hub page.
+	 * These are the entry point to the whole discovery chain — an agent that
+	 * fetches any page gets pointed at everything else without having to guess
+	 * at well-known paths.
 	 *
-	 * Headers are only emitted when the respective resources are actually present:
-	 * - llms.txt only when the scos_llms_txt option has it enabled.
-	 * - /mcp/ only when scos_agentic_webmcp_page_id option is set to a valid page ID.
+	 * Relations used:
+	 *   describedby  llms.txt          machine-readable site description
+	 *   api-catalog  api-catalog       RFC 9727 catalog, leads to the OpenAPI doc
+	 *   service-doc  /mcp/             human-readable connection instructions
+	 *
+	 * Each is only advertised when the resource actually exists. Linking to a
+	 * 404 is worse than omitting the relation, because it costs the agent a
+	 * request to discover the link was wrong.
 	 */
 	public static function send_link_headers(): void {
 		$links = [];
@@ -81,6 +107,9 @@ class Agentic_Module implements Module_Interface {
 		if ( ! empty( $llms['enabled'] ) ) {
 			$links[] = '<' . esc_url( home_url( '/llms.txt' ) ) . '>; rel="describedby"';
 		}
+
+		// Always present — the catalog is served unconditionally by Api_Catalog.
+		$links[] = '<' . esc_url( Api_Catalog::get_url() ) . '>; rel="api-catalog"';
 
 		$mcp_page_id = absint( get_option( 'scos_agentic_webmcp_page_id', 0 ) );
 		if ( $mcp_page_id > 0 ) {

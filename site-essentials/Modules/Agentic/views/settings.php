@@ -127,6 +127,41 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 	</div>
 
+	<!-- ── Discovery Endpoints (read-only reference) ──────────────────────── -->
+	<div class="scos-card" style="margin-bottom:var(--scos-s-6)">
+		<div class="scos-card__header scos-card__header--plain">
+			<h2 class="scos-card__title"><?php esc_html_e( 'Discovery Endpoints', 'site-essentials' ); ?></h2>
+			<p class="scos-card__desc">
+				<?php esc_html_e( 'Published automatically. These let an agent find the API without being told where it is.', 'site-essentials' ); ?>
+			</p>
+		</div>
+		<div class="scos-card__body">
+			<table class="scos-form">
+				<tbody>
+					<?php
+					$scos_discovery = [
+						__( 'API Catalog (RFC 9727)', 'site-essentials' )  => \SiteEssentials\Modules\Agentic\Api_Catalog::get_url(),
+						__( 'OpenAPI 3.1 description', 'site-essentials' ) => \SiteEssentials\Modules\Agentic\OpenAPI_Spec::get_spec_url(),
+						__( 'Agent Skills index', 'site-essentials' )      => \SiteEssentials\Modules\Agentic\Agent_Skills::get_index_url(),
+						__( 'MCP Server Card', 'site-essentials' )         => \SiteEssentials\Modules\Agentic\Mcp_Server_Card::get_url(),
+						__( 'Health probe', 'site-essentials' )            => \SiteEssentials\Modules\Agentic\OpenAPI_Spec::get_health_url(),
+					];
+					foreach ( $scos_discovery as $scos_label => $scos_url ) :
+						?>
+						<tr>
+							<th><?php echo esc_html( $scos_label ); ?></th>
+							<td>
+								<a href="<?php echo esc_url( $scos_url ); ?>" target="_blank" rel="noopener">
+									<code><?php echo esc_html( $scos_url ); ?></code>
+								</a>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
 	<div class="scos-save-bar">
 		<button type="submit" class="scos-btn scos-btn--primary">
 			<?php esc_html_e( 'Save Agentic Settings', 'site-essentials' ); ?>
