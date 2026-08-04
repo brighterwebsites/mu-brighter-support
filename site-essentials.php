@@ -3,7 +3,7 @@
  * Plugin Name: Site Essentials
  * Plugin URI:  https://brighterwebsites.com.au
  * Description: Modular site management system - Performance, Analytics, SEO, and more
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Brighter Websites
  * Author URI:  https://brighterwebsites.com.au
  * License:     GPL-2.0+
@@ -15,7 +15,11 @@
  * It sets up constants, autoloading, and bootstraps the plugin.
  *
  * @package SiteEssentials
- * @version 1.0.0
+ * @version 1.1.0
+ *
+ * v1.1.0 | 2026-08-02 — Third-party head script output moved out of this bootstrap
+ *                       into Core\Support_Scripts, which is now the single owner of
+ *                       se_support_script_* storage, migration and rendering.
  */
 
 // Exit if accessed directly
@@ -61,7 +65,7 @@ if (!SE_a8f4e21::c()) {
  *
  * @since 1.0.0
  */
-define('SITE_ESSENTIALS_VERSION', '1.0.0');
+define('SITE_ESSENTIALS_VERSION', '1.1.0');
 
 /**
  * Site Essentials Base Path
@@ -263,6 +267,7 @@ add_action(
 		\SiteEssentials\Modules\SeoMeta\Redirections::register_misc_http_filters();
 		\SiteEssentials\Modules\SeoMeta\Breakdance_Editor_Guard::init();
 		\SiteEssentials\Core\Migration_Deprecated::init();
+		\SiteEssentials\Core\Support_Scripts::init();
 	},
 	6
 );
@@ -275,21 +280,6 @@ add_action(
  *
  * @since 1.0.0
  */
-// Third-party scripts (se_support_script_*) → public <head>. Registered outside is_admin()
-// because Admin_UI is only instantiated in admin context and wp_head is a frontend hook.
-add_action( 'wp_head', function() {
-    $commenter = get_option( 'se_support_script_commenter', '' );
-    $ahrefs    = get_option( 'se_support_script_ahrefs', '' );
-    if ( $commenter !== '' ) {
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-stored trusted code field
-        echo "\n" . $commenter . "\n";
-    }
-    if ( $ahrefs !== '' ) {
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-stored trusted code field
-        echo "\n" . $ahrefs . "\n";
-    }
-} );
-
 add_action('init', function() {
     if (is_admin()) {
         try {

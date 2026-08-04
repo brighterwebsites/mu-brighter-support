@@ -3,6 +3,12 @@
  * SCOS agency / support options: se_agency_* and se_support_* with legacy fallbacks.
  *
  * @package BrighterCore
+ * @version 1.1
+ *
+ * v1.1 | 2026-08-02 — Third-party head scripts removed from this file. Storage and
+ *                     wp_head output now belong to SiteEssentials\Core\Support_Scripts,
+ *                     which is the single owner of se_support_script_* .
+ * v1.0 | 2026-08-02 — Version header added retrospectively.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,8 +31,6 @@ function scos_se_support_option_map() {
 		'ai_social'               => [ 'se_support_ai_social', 'ai_social_media' ],
 		'ai_competitor'           => [ 'se_support_ai_competitor', 'ai_competitor_research' ],
 		'management_portal'       => [ 'se_support_management_portal', 'management_portal' ],
-		'simple_commenter_script' => [ 'se_support_simple_commenter_script', 'simple_commenter_script' ],
-		'ahrefs_script'           => [ 'se_support_ahrefs_script', 'ahrefs_analytics_script' ],
 		'landing_html'            => [ 'se_support_landing_html', null ],
 	];
 }
@@ -220,25 +224,6 @@ function scos_se_support_maybe_migrate_legacy() {
 }
 
 add_action( 'admin_init', 'scos_se_support_maybe_migrate_legacy', 5 );
-
-/**
- * Output Simple Commenter / Ahrefs snippets from se_support_* (legacy fallback inside get).
- */
-function scos_agency_output_injected_head_scripts() {
-	if ( is_admin() || is_feed() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-		return;
-	}
-	$simple = scos_se_support_get( 'simple_commenter_script', '' );
-	if ( $simple !== '' ) {
-		echo "\n<!-- Simple Commenter -->\n" . $simple . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- sanitized on save (wp_kses).
-	}
-	$ahrefs = scos_se_support_get( 'ahrefs_script', '' );
-	if ( $ahrefs !== '' ) {
-		echo "\n" . $ahrefs . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	}
-}
-
-add_action( 'wp_head', 'scos_agency_output_injected_head_scripts', 10 );
 
 /**
  * Sanitize admin redirect target (must stay in wp-admin).
