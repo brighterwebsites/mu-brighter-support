@@ -2,7 +2,7 @@
 /**
  * Agentic — WebMCP Widget
  *
- * v1.1 | 2026-08-04
+ * v1.0 | 2026-08-04
  *
  * Conditionally loads the jasonjmcghee/WebMCP widget and registers the four
  * SCOS content tools on the designated /mcp/ page only — never site-wide.
@@ -38,50 +38,6 @@ class WebMCP_Widget {
 		}
 		add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue' ] );
 		add_action( 'wp_footer',          [ __CLASS__, 'output_tool_registration' ], 20 );
-
-		// Runs at priority 999 so it fires after LiteSpeed Cache (or any CSP plugin)
-		// has already added its Content-Security-Policy header via wp_headers.
-		add_filter( 'wp_headers', [ __CLASS__, 'allow_localhost_websocket' ], 999 );
-	}
-
-	/**
-	 * Append ws://localhost to connect-src in the CSP on the /mcp/ page only.
-	 *
-	 * The WebMCP relay runs on the visitor's own machine (ws://localhost:4797).
-	 * A strict CSP blocks this connection. We extend connect-src specifically
-	 * on the /mcp/ page — no other pages are affected.
-	 *
-	 * ws://localhost (without port) covers any port the relay might use.
-	 *
-	 * @param  array $headers WordPress headers array.
-	 * @return array
-	 */
-	public static function allow_localhost_websocket( array $headers ): array {
-		if ( ! self::is_mcp_page() ) {
-			return $headers;
-		}
-
-		foreach ( $headers as $name => $value ) {
-			if ( 'content-security-policy' !== strtolower( $name ) ) {
-				continue;
-			}
-
-			if ( strpos( $value, 'connect-src' ) !== false ) {
-				// Append ws://localhost after the connect-src keyword.
-				$headers[ $name ] = preg_replace(
-					'/(connect-src\s+)/',
-					'$1ws://localhost ',
-					$value
-				);
-			} else {
-				// No connect-src directive present — add one.
-				$headers[ $name ] = rtrim( $value, '; ' ) . '; connect-src ws://localhost';
-			}
-
-			break; // Only one CSP header to modify.
-		}
-
-		return $headers;
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
