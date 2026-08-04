@@ -175,17 +175,26 @@ class Content_API {
 			return new \WP_REST_Response( [ 'error' => 'Not found.' ], 404 );
 		}
 
-		$post = $posts[0];
+		$post    = $posts[0];
+		$content = self::strip_to_readable( $post->post_content );
 
-		return new \WP_REST_Response( [
+		$response = [
 			'title'          => esc_html( get_the_title( $post ) ),
 			'slug'           => $post->post_name,
 			'url'            => get_permalink( $post ),
 			'published_date' => get_the_date( 'Y-m-d', $post ),
 			'purpose'        => get_post_meta( $post->ID, 'scos_ca_purpose', true ),
 			'intent'         => get_post_meta( $post->ID, 'scos_ca_intent', true ),
-			'content'        => self::strip_to_readable( $post->post_content ),
-		], 200 );
+			'content'        => $content,
+		];
+
+		// Surface the Breakdance limitation to agents so they know to use the
+		// markdown endpoint instead (Accept: text/markdown on the page URL).
+		if ( '' === $content ) {
+			$response['_note'] = 'Content is empty — this page is built with Breakdance and its body is not stored in post_content. Request the page URL with the Accept: text/markdown header to retrieve full readable text.';
+		}
+
+		return new \WP_REST_Response( $response, 200 );
 	}
 
 	/**
@@ -257,6 +266,15 @@ class Content_API {
 
 	/**
 	 * Strip shortcodes and HTML from post content for clean agent consumption.
+	 *
+	 * KNOWN LIMITATION — Breakdance pages return empty content:
+	 * Breakdance stores its layout in post meta (_breakdance_data), not in
+	 * post_content, so pages built with Breakdance will have an empty "content"
+	 * field in the /content/{slug} response. This is expected and not a bug.
+	 *
+	 * Future: a Breakdance-aware extractor could parse _breakdance_data and
+	 * extract text nodes, or the /mcp/ page can note that agents should use
+	 * the Markdown endpoint (Accept: text/markdown) for full page text instead.
 	 *
 	 * @param  string $content Raw post_content.
 	 * @return string
