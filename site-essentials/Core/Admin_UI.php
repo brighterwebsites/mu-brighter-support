@@ -7,9 +7,14 @@
  *
  * @package    SiteEssentials
  * @subpackage Core
- * @version    1.1.1
+ * @version    1.2
  * @since      1.0.0
  *
+ * v1.2 | 2026-08-02 — Third-party head scripts delegated to Core\Support_Scripts.
+ *                      Removed the never-hooked output_support_scripts() and the
+ *                      orphaned se_support_*_script save block, which wrote keys no
+ *                      view rendered and left the Agency tab fields reading a
+ *                      different option than the head output.
  * v1.1.1 | 2026-07-30 — Support hub menu registered for editor/shop_manager (was
  *                      manage_options only, which blocked admin.php before the
  *                      render callback's role check). Access tab login redirects
@@ -558,24 +563,6 @@ class Admin_UI {
     /**
      * Support hub landing page — read-only, accessible to administrator/editor/shop_manager.
      *
-     * @since 1.0.0
-     * @return void
-     */
-    public function output_support_scripts(): void {
-        $commenter = get_option( 'se_support_script_commenter', '' );
-        $ahrefs    = get_option( 'se_support_script_ahrefs', '' );
-
-        if ( $commenter !== '' ) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-stored trusted code field
-            echo "\n" . $commenter . "\n";
-        }
-        if ( $ahrefs !== '' ) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-stored trusted code field
-            echo "\n" . $ahrefs . "\n";
-        }
-    }
-
-    /**
      * @return void
      */
     public function render_support_page() {
@@ -782,10 +769,13 @@ class Admin_UI {
             update_option( 'se_support_notification',      sanitize_textarea_field( wp_unslash( $_POST['se_support_notification'] ?? '' ) ) );
             update_option( 'se_support_notification_type', in_array( $notif_type, $valid_notif_types, true ) ? $notif_type : 'warning' );
 
-            // Third-party scripts — stored verbatim (manage_options only); sanitize_textarea_field
-            // would strip <script> tags, so we use wp_unslash + trim for code fields.
-            update_option( 'se_support_script_commenter', trim( wp_unslash( $_POST['se_support_script_commenter'] ?? '' ) ) );
-            update_option( 'se_support_script_ahrefs',    trim( wp_unslash( $_POST['se_support_script_ahrefs'] ?? '' ) ) );
+            // Third-party scripts — Support_Scripts owns storage and head output.
+            Support_Scripts::save(
+                [
+                    'se_support_script_commenter' => wp_unslash( $_POST['se_support_script_commenter'] ?? '' ),
+                    'se_support_script_ahrefs'    => wp_unslash( $_POST['se_support_script_ahrefs'] ?? '' ),
+                ]
+            );
 
             wp_safe_redirect(
                 add_query_arg(
@@ -1957,32 +1947,6 @@ class Admin_UI {
             ];
             foreach ( $urls as $post_key => $opt_key ) {
                 update_option( $opt_key, esc_url_raw( wp_unslash( $_POST[ $post_key ] ?? '' ) ) );
-            }
-
-            $allowed_tags = [
-                'script' => [
-                    'src'      => true,
-                    'type'     => true,
-                    'async'    => true,
-                    'defer'    => true,
-                    'data-key' => true,
-                    'id'       => true,
-                ],
-                'link'   => [
-                    'rel'         => true,
-                    'href'        => true,
-                    'as'          => true,
-                    'type'        => true,
-                    'crossorigin' => true,
-                ],
-            ];
-            if ( isset( $_POST['se_support_simple_commenter_script'] ) ) {
-                $raw = wp_unslash( $_POST['se_support_simple_commenter_script'] );
-                update_option( 'se_support_simple_commenter_script', is_string( $raw ) ? wp_kses( $raw, $allowed_tags ) : '' );
-            }
-            if ( isset( $_POST['se_support_ahrefs_script'] ) ) {
-                $raw = wp_unslash( $_POST['se_support_ahrefs_script'] );
-                update_option( 'se_support_ahrefs_script', is_string( $raw ) ? wp_kses( $raw, $allowed_tags ) : '' );
             }
         }
 

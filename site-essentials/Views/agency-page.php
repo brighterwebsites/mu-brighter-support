@@ -528,7 +528,7 @@ $page_url = admin_url( 'admin.php' );
 									</th>
 									<td>
 										<textarea id="se_support_script_commenter" name="se_support_script_commenter"
-											class="scos-textarea" rows="4"><?php echo esc_textarea( get_option( 'se_support_script_commenter', '' ) ); ?></textarea>
+											class="scos-textarea" rows="4"><?php echo esc_textarea( \SiteEssentials\Core\Support_Scripts::get( 'se_support_script_commenter' ) ); ?></textarea>
 										<p class="description"><?php esc_html_e( 'Paste the full script tag.', 'site-essentials' ); ?></p>
 									</td>
 								</tr>
@@ -539,7 +539,7 @@ $page_url = admin_url( 'admin.php' );
 									</th>
 									<td>
 										<textarea id="se_support_script_ahrefs" name="se_support_script_ahrefs"
-											class="scos-textarea" rows="4"><?php echo esc_textarea( get_option( 'se_support_script_ahrefs', '' ) ); ?></textarea>
+											class="scos-textarea" rows="4"><?php echo esc_textarea( \SiteEssentials\Core\Support_Scripts::get( 'se_support_script_ahrefs' ) ); ?></textarea>
 										<p class="description"><?php esc_html_e( 'Paste the full script tag.', 'site-essentials' ); ?></p>
 									</td>
 								</tr>
