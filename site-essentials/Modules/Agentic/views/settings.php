@@ -8,7 +8,7 @@
  * by Admin_UI::render_agentic_page().
  *
  * Variables available:
- * @var bool $enabled Whether ?format=md rendering is enabled.
+ * @var bool $enabled Whether Markdown for Agents is enabled.
  *
  * @package    SiteEssentials
  * @subpackage Modules\Agentic\Views
@@ -48,15 +48,15 @@ defined( 'ABSPATH' ) || exit;
 					value="1"
 					<?php checked( $enabled ); ?>>
 				<span>
-					<strong><?php esc_html_e( 'Enable ?format=md rendering', 'site-essentials' ); ?></strong>
+					<strong><?php esc_html_e( 'Enable Markdown for Agents', 'site-essentials' ); ?></strong>
 					<span class="description" style="display:block;margin-top:2px">
-						<?php esc_html_e( 'Appending ?format=md or ?format=markdown to any post or page URL returns a plain-text version (title + content, no theme chrome) for AI agents browsing the web via HTTP. Has no effect on normal visitors.', 'site-essentials' ); ?>
+						<?php esc_html_e( 'When enabled, AI agents that send an Accept: text/markdown request header receive a Markdown version of the page — YAML frontmatter (title, description, image) plus converted content, with no theme chrome. Normal browser requests are completely unaffected. Also responds to ?format=md or ?format=markdown query parameters for manual testing.', 'site-essentials' ); ?>
 					</span>
 					<span class="description" style="display:block;margin-top:4px;font-style:italic">
 						<?php
 						printf(
 							/* translators: %s example URL with format=md parameter */
-							esc_html__( 'Example: %s', 'site-essentials' ),
+							esc_html__( 'Manual test: %s', 'site-essentials' ),
 							'<code>' . esc_html( home_url( '/your-page/?format=md' ) ) . '</code>'
 						);
 						?>
