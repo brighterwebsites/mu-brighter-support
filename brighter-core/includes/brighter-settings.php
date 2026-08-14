@@ -4,22 +4,31 @@
  *
  * File: brighter-settings.php
  * Purpose: Provides admin-side settings for Brighter Support, including
- * links to manuals, ranking tools, login branding, and API token control.
+ * links to manuals, ranking tools, and login branding.
  *
- * Version: 4.0.0
+ * Version: 4.0.1
+ *
+ * Changelog:
+ * 4.0.1 - REMOVED brc_token ("Brighter API Token") field: registered on
+ *         brighter_support_page/brighter_support_settings, but nothing in the codebase calls
+ *         do_settings_sections('brighter_support_page') anymore, so the field was unreachable
+ *         from any admin screen. It was also unrelated to and never used by the real, active
+ *         API token (brighter_api_token, used by class-brighter-api-auth.php and rendered at
+ *         Site Essentials > API settings) despite the similar name.
+ * 4.0.0 - Initial version
  *
  * Responsibilities:
  * - Enqueue custom admin styles on Brighter Support admin pages only.
- * - Register and manage support settings (manual links, ranking links,
- *   login logo, and API token).
- * - Render input fields for editing URLs and generating a secure API token.
+ * - Register and manage support settings (manual links, ranking links, login logo).
+ * - Render input fields for editing URLs.
  *
  * Notes:
+ * - The brighter_login_logo field below is registered on brighter_support_page, which is no
+ *   longer rendered anywhere (Agency Settings tab now redirects to Site Essentials) â€” the
+ *   option is still read live by login-styling.php, but there is currently no admin UI to
+ *   set it. TODO: move this field to the Site Essentials Agency branding page.
  * - Styles are only loaded on the `brighter_support` admin page
  *   (avoids polluting other admin screens).
- * - The `brc_token` option is used for REST API authentication via
- *   the `X-Brighter-Token` header. The “Generate” button creates
- *   a new 32-character random token. (not currently in use - was preparing for integration with custom GPT)
  * - Manual/Quick Links and Ranks Pro links allow dynamic site-specific
  *   references to training material and ranking tools.
  * - `brighter_login_logo` option sets a custom login page logo,
@@ -54,16 +63,15 @@ add_action('admin_enqueue_scripts', function($hook) {
 
 
 /**
- * Register settings for Manual Links + API Token
+ * Register settings for login branding
  */
 add_action('admin_init', function() {
 
     register_setting('brighter_support_settings', 'brighter_login_logo');
-    register_setting('brighter_support_settings', 'brc_token'); // ðŸ‘ˆ token saved here
 
     add_settings_section(
         'manual_links_section',
-        'Login branding & API token',
+        'Login branding',
         function () {
             echo '<p>' . esc_html__( 'Manual and ranking URLs are configured in Site Essentials ? Support ? Support settings.', 'brighterwebsites' ) . '</p>';
         },
@@ -74,15 +82,5 @@ add_action('admin_init', function() {
     add_settings_field('brighter_login_logo', 'Login Page Logo URL', function() {
         echo '<input type="url" name="brighter_login_logo" value="' . esc_url(get_option('brighter_login_logo')) . '" class="regular-text">';
         echo '<p class="description">Paste the URL of the image you want to show on the login page.</p>';
-    }, 'brighter_support_page', 'manual_links_section');
-
-    // ðŸ”‘ API Token (with Generate button)
-    add_settings_field('brc_token', 'Brighter API Token', function() {
-        $val = esc_attr(get_option('brc_token'));
-        $new_token = wp_generate_password(32, false, false); // 32-char random, letters/numbers only
-
-        echo '<input type="text" class="regular-text" id="brc_token" name="brc_token" value="' . $val . '" />';
-        echo '<p class="description">Used in REST API requests as <code>X-Brighter-Token</code>.</p>';
-        echo '<p><button type="button" class="button" onclick="document.getElementById(\'brc_token\').value=\'' . $new_token . '\'">Generate New Token</button></p>';
     }, 'brighter_support_page', 'manual_links_section');
 });

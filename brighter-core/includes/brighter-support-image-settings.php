@@ -3,9 +3,11 @@
  * Brighter Tools: Image Optimisation Settings (Admin UI)
  * 
  * File: brighter-support-image-settings.php
- * Version: 4.2.0
+ * Version: 4.2.1
  *
  * Changelog:
+ * 4.2.1 - REMOVED dead og:logo wp_head hook: read get_option('your_logo_option'), which is
+ *         never set anywhere in the codebase, so it has never output anything.
  * 4.2.0 - Expose social-square (1080x1080) toggle in Manage Image Thumbnails & Sizes
  * 4.1.0 - Performance: Batch load settings, cache registered sizes, reduce queries
  * 4.0.0 - Initial release
@@ -255,24 +257,4 @@ add_action('update_option', function($option_name) {
         delete_transient('brighter_registered_sizes_html');
     }
 }, 10, 1);
-
-/**
- * Add og:logo meta tag site-wide (cached)
- */
-add_action('wp_head', function() {
-    if (is_admin()) return;
-    
-    static $logo_output = null;
-    
-    if ($logo_output === null) {
-        $logo = get_option('your_logo_option');
-        if ($logo) {
-            $logo_output = '<meta property="og:logo" content="' . esc_url($logo) . '">' . "\n";
-        } else {
-            $logo_output = '';
-        }
-    }
-    
-    echo $logo_output;
-});
 

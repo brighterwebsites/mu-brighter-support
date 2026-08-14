@@ -3,9 +3,15 @@
  * Brighter Tools: Tweaks
  *
  * File: brighter-tweaks.php
- * Version: 4.4.0
+ * Version: 4.4.1
  *
  * Changelog:
+ * 4.4.1 - REMOVED dead theme-colour code: OPT_THEME ('theme_colour') was registered and
+ *         saved by process_save() but had no form field anywhere to submit it, so it was
+ *         unreachable. output_theme_color_meta() (also removed) read a different, unrelated
+ *         option, bw_mobile_theme_color, that nothing in the codebase ever wrote — the
+ *         theme-color meta tag has never actually output anything. sanitise_hex() removed
+ *         as its only caller was this dead code path.
  * 4.4.0 - Replaced global "Post Types" + "Preload Image Size" controls with a per-post-type
  *         registered image size selector (brighter_preload_post_type_sizes). Auto-migrates
  *         existing brighter_preload_post_types + brighter_preload_use_og_image on first load.
@@ -35,7 +41,6 @@ defined('ABSPATH') || exit;
 
 class Brighter_Tweaks {
     const OPT = 'bw_preloads_map';
-    const OPT_THEME = 'theme_colour';
     const OPT_POST_TYPES = 'brighter_preload_post_types'; // Legacy, read only during migration.
     const OPT_POST_TYPE_SIZES = 'brighter_preload_post_type_sizes';
     const OPT_GOOGLE_FONTS = 'bw_google_fonts_preload';
@@ -50,8 +55,7 @@ class Brighter_Tweaks {
         // Frontend output - priority 1 for early loading
         add_action('wp_head', [__CLASS__, 'output_preloads'], 1);
         add_action('wp_head', [__CLASS__, 'output_featured_image_preload'], 1);
-        add_action('wp_head', [__CLASS__, 'output_theme_color_meta'], 1);
-        
+
         // Google Fonts removal - CRITICAL
         add_action('wp_loaded', [__CLASS__, 'remove_google_fonts']);
         
@@ -130,13 +134,6 @@ class Brighter_Tweaks {
             'type' => 'array',
             'sanitize_callback' => [__CLASS__, 'sanitise_preloads_map'],
             'default' => [],
-        ]);
-
-        // Theme colour
-        register_setting('brighter_tweaks', self::OPT_THEME, [
-            'type' => 'string',
-            'sanitize_callback' => [__CLASS__, 'sanitise_hex'],
-            'default' => '',
         ]);
 
         // Per-post-type featured image preload size
@@ -281,10 +278,6 @@ class Brighter_Tweaks {
             error_log('[Brighter_Tweaks] Nonce valid, proceeding with save...');
         }
         
-        if (isset($_POST[self::OPT_THEME])) {
-            update_option(self::OPT_THEME, self::sanitise_hex(wp_unslash($_POST[self::OPT_THEME])));
-        }
-
         // NOTE: Post-type image sizes, WebP options, and Google Fonts Preload are owned by
         // their own cards (submitted via options.php / the Settings API) and are intentionally
         // NOT touched here. This form (Per-Page Preloads) no longer renders those fields, so
@@ -369,7 +362,6 @@ class Brighter_Tweaks {
         if (!current_user_can('manage_options')) {
             return;
         }
-        $theme = get_option(self::OPT_THEME, '');
         $map = get_option(self::OPT, []);
         $paged = max(1, isset($_GET['paged']) ? absint($_GET['paged']) : 1);
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
@@ -646,26 +638,6 @@ class Brighter_Tweaks {
     }
 
     /**
-     * Output theme-color meta tag from Business Info
-     */
-    public static function output_theme_color_meta() {
-        // Get theme color from Business Info
-        $theme_color = get_option('bw_mobile_theme_color', '');
-        
-        if (empty($theme_color)) {
-            return;
-        }
-        
-        // Ensure it has a hash
-        if ($theme_color[0] !== '#') {
-            $theme_color = '#' . $theme_color;
-        }
-        
-        echo "\n<!-- Brighter Tweaks: Theme Color -->\n";
-        echo '<meta name="theme-color" content="' . esc_attr($theme_color) . '">' . "\n";
-    }
-
-    /**
      * Remove Google Fonts - THE NUCLEAR OPTION
      * This removes fonts.googleapis.com from everywhere
      */
@@ -899,12 +871,6 @@ class Brighter_Tweaks {
             ],
         ];
         return wp_kses((string) $value, $allowed_tags);
-    }
-
-    public static function sanitise_hex($hex) {
-        $hex = ltrim(trim((string)$hex), '#');
-        if (!preg_match('/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/', $hex)) return '';
-        return '#' . strtolower($hex);
     }
 
     public static function sanitise_meta_array($value) {
