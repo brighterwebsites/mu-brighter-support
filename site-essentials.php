@@ -3,11 +3,11 @@
  * Plugin Name: Site Essentials
  * Plugin URI:  https://brighterwebsites.com.au
  * Description: Modular site management system - Performance, Analytics, SEO, and more
- * Version:     1.1.0
+ * Version:     1.1.1
  * Author:      Brighter Websites
  * Author URI:  https://brighterwebsites.com.au
- * License:     GPL-2.0+
- * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+ * License:     GPL-3.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.txt
  * Text Domain: site-essentials
  * Domain Path: /languages
  *
@@ -15,8 +15,13 @@
  * It sets up constants, autoloading, and bootstraps the plugin.
  *
  * @package SiteEssentials
- * @version 1.1.0
+ * @version 1.1.1
  *
+ * v1.1.1 | 2026-08-17 — Removed the SERVER_ADDR licence gate, which silently
+ *                       disabled the whole plugin when the server IP changed
+ *                       and published agency hosting IPs to a public repo.
+ *                       Replaced with an opt-in, fail-open host warning.
+ *                       License header corrected to GPL-3.0 to match LICENSE.
  * v1.1.0 | 2026-08-02 — Third-party head script output moved out of this bootstrap
  *                       into Core\Support_Scripts, which is now the single owner of
  *                       se_support_script_* storage, migration and rendering.
@@ -27,38 +32,79 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class SE_a8f4e21 {
-    private static $w = [
-        '70.36.114.234',
-        '23.239.110.136',
-        '70.36.114.232',
+/**
+ * Deployment check.
+ *
+ * Warns when the plugin is running somewhere unexpected. It does NOT block
+ * loading, and it is not a security or licensing control.
+ *
+ * The previous implementation matched $_SERVER['SERVER_ADDR'] against a
+ * hardcoded IP allowlist and did a bare `return` on mismatch, which silently
+ * disabled the entire plugin. That was removed because:
+ *
+ *   - It broke legitimate deploys. Server IPs change on a DC move, a rebuild,
+ *     or a load balancer being introduced, and the failure was near-silent:
+ *     one admin notice, with every module simply absent.
+ *   - It was undetectable from WP-CLI, which bypassed the check, so CLI
+ *     verification passed while the web front end had the plugin switched off.
+ *   - It enforced nothing. This plugin is public and GPL-licensed, so the
+ *     allowlist was readable by anyone and removable in three lines.
+ *   - It published the agency's hosting IPs to a public repository.
+ *
+ * To scope the warning to specific sites, define SE_EXPECTED_HOSTS in
+ * wp-config.php as a comma-separated list of hostnames. Left undefined, the
+ * check is inert. Hostnames are used rather than IPs so the check survives
+ * infrastructure moves.
+ *
+ * @since 1.1.1
+ */
+class SE_Deployment_Check {
 
-    ];
+    /**
+     * Register the admin notice when the current host is not expected.
+     *
+     * @return void
+     */
+    public static function init() {
+        if ( ! defined( 'SE_EXPECTED_HOSTS' ) || ! is_string( SE_EXPECTED_HOSTS ) || SE_EXPECTED_HOSTS === '' ) {
+            return;
+        }
 
-    public static function c() {
-        // WP-CLI runs on the server directly — no HTTP request, no SERVER_ADDR. Always allow.
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
-            return true;
+        $expected = array_filter( array_map( 'trim', explode( ',', SE_EXPECTED_HOSTS ) ) );
+        if ( empty( $expected ) ) {
+            return;
         }
-        if (!isset($_SERVER['SERVER_ADDR']) || !in_array($_SERVER['SERVER_ADDR'], self::$w, true)) {
-            add_action('admin_notices', [__CLASS__, 'n']);
-            return false;
+
+        $current = wp_parse_url( home_url(), PHP_URL_HOST );
+        if ( ! is_string( $current ) || $current === '' ) {
+            return;
         }
-        return true;
+
+        if ( ! in_array( strtolower( $current ), array_map( 'strtolower', $expected ), true ) ) {
+            add_action( 'admin_notices', [ __CLASS__, 'render_notice' ] );
+        }
     }
 
-    public static function n() {
-        $ip = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : 'unknown';
-        echo '<div class="notice notice-error is-dismissible">';
-        echo '<p><strong>Site Essentials:</strong> This plugin is not licensed for this server (IP: ' . esc_html($ip) . ').</p>';
-        echo '<p>Please contact <a href="mailto:support@brighterwebsites.com.au">support@brighterwebsites.com.au</a> to activate your license.</p>';
+    /**
+     * Render the unexpected-host notice.
+     *
+     * @return void
+     */
+    public static function render_notice() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+        $host = wp_parse_url( home_url(), PHP_URL_HOST );
+        echo '<div class="notice notice-warning is-dismissible">';
+        echo '<p><strong>Site Essentials:</strong> running on an unexpected host ('
+            . esc_html( is_string( $host ) ? $host : 'unknown' )
+            . '). The plugin is active; check this is intentional.</p>';
+        echo '<p>Questions: <a href="mailto:support@brighterwebsites.com.au">support@brighterwebsites.com.au</a></p>';
         echo '</div>';
     }
 }
 
-if (!SE_a8f4e21::c()) {
-    return;
-}
+add_action( 'init', [ 'SE_Deployment_Check', 'init' ] );
 
 /**
  * Site Essentials Version
