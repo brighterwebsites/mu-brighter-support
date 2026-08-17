@@ -7,7 +7,7 @@
  *
  * @package    SiteEssentials
  * @subpackage Core
- * @version    1.2
+ * @version    1.3
  * @since      1.0.0
  *
  * v1.2 | 2026-08-02 — Third-party head scripts delegated to Core\Support_Scripts.
@@ -1047,8 +1047,19 @@ class Admin_UI {
         // ── Postly.ai / Anthropic pipeline settings ──────────────────────────
         // SCOS-SA-PASS1 — new scheduling/backfill fields (scos_sa_*) added.
         // SCOS-SA-PASS2 — per-channel fields, slot-gap-days added.
+        // Secret fields are rendered empty so the stored value never appears in the
+        // page source; an empty submission therefore means "unchanged". Clearing is
+        // an explicit checkbox. Handled before the generic loop below.
+        if ( ! empty( $_POST['bw_postly_api_key_clear'] ) ) {
+            delete_option( 'bw_postly_api_key' );
+        } elseif ( isset( $_POST['bw_postly_api_key'] ) ) {
+            $submitted_postly_key = sanitize_text_field( wp_unslash( $_POST['bw_postly_api_key'] ) );
+            if ( '' !== $submitted_postly_key ) {
+                update_option( 'bw_postly_api_key', $submitted_postly_key );
+            }
+        }
+
         $postly_fields = [
-            'bw_postly_api_key'            => 'sanitize_text_field',
             'bw_postly_workspace_id'       => 'sanitize_text_field',
             'bw_postly_channel_ids'        => 'sanitize_text_field',
             'bw_social_acf_gallery_keys'   => 'sanitize_text_field',
@@ -1176,11 +1187,19 @@ class Admin_UI {
             wp_die( __( 'Insufficient permissions.', 'site-essentials' ) );
         }
 
-        if ( isset( $_POST['bw_anthropic_api_key'] ) ) {
-            update_option( 'bw_anthropic_api_key', sanitize_text_field( $_POST['bw_anthropic_api_key'] ) );
+        // The key field is rendered empty so the stored secret never reaches the
+        // page source, so an empty submission means "unchanged", not "clear".
+        // Clearing is an explicit checkbox.
+        if ( ! empty( $_POST['bw_anthropic_api_key_clear'] ) ) {
+            delete_option( 'bw_anthropic_api_key' );
+        } elseif ( isset( $_POST['bw_anthropic_api_key'] ) ) {
+            $submitted_key = sanitize_text_field( wp_unslash( $_POST['bw_anthropic_api_key'] ) );
+            if ( '' !== $submitted_key ) {
+                update_option( 'bw_anthropic_api_key', $submitted_key );
+            }
         }
         if ( isset( $_POST['bw_anthropic_model'] ) ) {
-            update_option( 'bw_anthropic_model', sanitize_text_field( $_POST['bw_anthropic_model'] ) );
+            update_option( 'bw_anthropic_model', sanitize_text_field( wp_unslash( $_POST['bw_anthropic_model'] ) ) );
         }
 
         wp_redirect( add_query_arg( [ 'page' => self::SETTINGS_PAGE_SLUG, 'tab' => 'ai-keys', 'updated' => '1' ], admin_url( 'admin.php' ) ) );

@@ -1,0 +1,33 @@
+# SCOS deploy - managed site list
+#
+# Install to /etc/scos-deploy/sites.conf on the web server:
+#
+#   mkdir -p /etc/scos-deploy
+#   cp sites.conf.example /etc/scos-deploy/sites.conf
+#   chown root:root /etc/scos-deploy/sites.conf
+#   chmod 600 /etc/scos-deploy/sites.conf
+#
+# deploy-mu-plugins.sh refuses to run unless this file is root-owned and 600.
+#
+# NEVER commit the real file to the SCOS repo - that repo is public, and this
+# list is a map of your client domains, system usernames and server layout.
+#
+# Format, one site per line:
+#
+#   domain|system_user
+#
+# domain       the directory name under /home, i.e. /home/<domain>/public_html
+# system_user  the account that must own the files after deploy
+#
+# Comment a line out with # to skip that site on the next run. You can also
+# leave the list intact and target specific sites at run time:
+#
+#   ./deploy-mu-plugins.sh --only example-client.com.au
+#
+
+# Placeholders only. Put the real domains and usernames in
+# /etc/scos-deploy/sites.conf on the server, never in this repo.
+example-client.com.au|examp1234
+
+# Comment a site out to skip it on the next run:
+#another-client.com.au|anoth5678

@@ -132,8 +132,14 @@ $deploy_info = Admin_UI::get_deployment_info();
 	<?php elseif ( 'ai-keys' === $active_tab ) : ?>
 
 		<?php
-		$anthropic_key   = get_option( 'bw_anthropic_api_key', '' );
-		$anthropic_model = get_option( 'bw_anthropic_model', '' );
+		// TODO: migrate to se_ prefix (shared across modules) — see CLAUDE.md §3.
+		$anthropic_opt      = get_option( 'bw_anthropic_api_key', '' );
+		$anthropic_model    = get_option( 'bw_anthropic_model', '' );
+		$anthropic_constant = defined( 'SE_ANTHROPIC_API_KEY' ) && is_string( SE_ANTHROPIC_API_KEY ) && SE_ANTHROPIC_API_KEY !== '';
+		// Never render the key itself. type="password" only masks it on screen —
+		// the cleartext value stays in the page source, readable by anything that
+		// can see the DOM of this admin page.
+		$anthropic_has_key  = $anthropic_constant || ( is_string( $anthropic_opt ) && $anthropic_opt !== '' );
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( 'scos_save_ai_keys', 'scos_ai_keys_nonce' ); ?>
@@ -156,17 +162,27 @@ $deploy_info = Admin_UI::get_deployment_info();
 								</th>
 								<td>
 									<input type="password" id="bw_anthropic_api_key" name="bw_anthropic_api_key"
-									       value="<?php echo esc_attr( $anthropic_key ); ?>"
+									       value=""
 									       class="scos-input scos-input--mono"
-									       autocomplete="new-password">
+									       autocomplete="new-password"
+									       <?php disabled( $anthropic_constant ); ?>
+									       placeholder="<?php echo esc_attr( $anthropic_has_key ? __( 'Saved — leave blank to keep', 'site-essentials' ) : __( 'sk-ant-...', 'site-essentials' ) ); ?>">
 									<p class="description">
 										<?php esc_html_e( 'Used by Social Amplification (caption generation via Claude) and future AI integrations. Obtain from', 'site-essentials' ); ?>
 										<a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>.
 									</p>
-									<?php if ( $anthropic_key ) : ?>
-										<p class="description" style="color:var(--scos-success);margin-top:var(--scos-s-1)">
-											✓ <?php esc_html_e( 'Key is saved. Enter a new value to replace it.', 'site-essentials' ); ?>
+									<?php if ( $anthropic_constant ) : ?>
+										<p class="description">
+											<?php esc_html_e( 'Set via the SE_ANTHROPIC_API_KEY constant in wp-config.php. Remove the constant to manage the key here.', 'site-essentials' ); ?>
 										</p>
+									<?php elseif ( $anthropic_has_key ) : ?>
+										<p class="description" style="color:var(--scos-success);margin-top:var(--scos-s-1)">
+											✓ <?php esc_html_e( 'Key is saved. Leave blank to keep it, or enter a new value to replace it.', 'site-essentials' ); ?>
+										</p>
+										<label class="description" for="bw_anthropic_api_key_clear">
+											<input type="checkbox" id="bw_anthropic_api_key_clear" name="bw_anthropic_api_key_clear" value="1">
+											<?php esc_html_e( 'Delete the stored key', 'site-essentials' ); ?>
+										</label>
 									<?php endif; ?>
 								</td>
 							</tr>

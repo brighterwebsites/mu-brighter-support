@@ -12,7 +12,7 @@
  *
  * @package    SiteEssentials
  * @subpackage Modules\CustomPosts
- * @version    1.1.0
+ * @version    1.2.1
  * @since      1.0.0
  */
 
@@ -631,11 +631,39 @@ JS;
      * @return array
      */
     public function allow_platform_svg_upload($mimes) {
-        if (current_user_can('upload_files')) {
-            $mimes['svg']  = 'image/svg+xml';
-            $mimes['svgz'] = 'image/svg+xml';
+        if (self::current_user_can_upload_svg()) {
+            $mimes['svg'] = 'image/svg+xml';
+            // NOTE: svgz (gzipped SVG) is deliberately NOT allowed. sanitize_svg_upload()
+            // operates on the raw bytes, so a gzipped payload passes through it
+            // byte-for-byte unmodified — the sanitiser cannot see inside the archive.
         }
         return $mimes;
+    }
+
+    /**
+     * Whether the current user may upload SVG.
+     *
+     * SVG is an executable document format, not an image: a crafted file can carry
+     * script that runs in the admin's browser when the file is previewed in the
+     * Media Library. Uploading one is therefore closer to installing a plugin than
+     * to uploading a PNG, so it is gated on manage_options rather than upload_files.
+     *
+     * Previously any user with upload_files (Author and above) could upload SVG,
+     * which made stored XSS in the admin reachable from a low-privileged account.
+     *
+     * @since 1.2.1
+     * @return bool
+     */
+    private static function current_user_can_upload_svg() {
+        /**
+         * Filter who may upload SVG files.
+         *
+         * @param bool $allowed Defaults to current_user_can('manage_options').
+         */
+        return (bool) apply_filters(
+            'site_essentials_allow_svg_upload',
+            current_user_can('manage_options')
+        );
     }
 
     /**
@@ -655,8 +683,14 @@ JS;
         if (!empty($data['ext']) && !empty($data['type'])) {
             return $data;
         }
+        // This filter relaxes the content-vs-extension verification WP added in
+        // 4.7.1 to block polyglot uploads, so it must be gated by the same
+        // capability as the MIME allowlist itself.
+        if (!self::current_user_can_upload_svg()) {
+            return $data;
+        }
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        if ($ext === 'svg' || $ext === 'svgz') {
+        if ($ext === 'svg') {
             $data['ext']             = $ext;
             $data['type']            = 'image/svg+xml';
             $data['proper_filename'] = $filename;
@@ -665,12 +699,22 @@ JS;
     }
 
     /**
-     * Sanitize SVG files on upload by stripping scripts and event handlers.
+     * Sanitize SVG files on upload.
      *
-     * Removes <script> elements, on* event attributes, and javascript: URIs
-     * before the file is written to the uploads directory.
+     * Defence in depth only. The load-bearing control is the manage_options gate
+     * in current_user_can_upload_svg() — pattern-based SVG sanitising cannot be
+     * made complete, because SVG is XML and there are many ways to smuggle script
+     * past a matcher that a browser's parser will still honour.
+     *
+     * The previous implementation matched three patterns and was bypassed by, at
+     * minimum: self-closing <script xlink:href="data:..."/> (no closing tag to
+     * match), nested <scr<script></script>ipt> (reforms after one pass), unquoted
+     * attribute values (onload=alert(1)), entity-encoded schemes
+     * (&#106;avascript:), SMIL <animate attributeName="href"> and
+     * <set attributeName="onbegin">, and <foreignObject> carrying arbitrary HTML.
      *
      * @since 1.2.0
+     * @since 1.2.1 Rejects files carrying active content rather than trying to clean them.
      * @param array $file Upload data array from $_FILES.
      * @return array
      */
@@ -678,18 +722,70 @@ JS;
         if (($file['type'] ?? '') !== 'image/svg+xml') {
             return $file;
         }
+
         $content = file_get_contents($file['tmp_name']);
         if ($content === false) {
             $file['error'] = __('Could not read the uploaded SVG file.', 'site-essentials');
             return $file;
         }
-        // Strip <script> blocks
-        $content = preg_replace('/<script[\s\S]*?<\/script>/i', '', $content);
-        // Strip on* event attributes (e.g. onload="...", onclick='...')
-        $content = preg_replace('/\s+on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\')/i', '', $content);
-        // Strip javascript: URIs in href / xlink:href
-        $content = preg_replace('/\s+(?:xlink:)?href\s*=\s*(?:"javascript:[^"]*"|\'javascript:[^\']*\')/i', '', $content);
-        file_put_contents($file['tmp_name'], $content);
+
+        // A gzip magic number here means the sanitiser would be matching against
+        // compressed bytes and silently passing everything through.
+        if (strncmp($content, "\x1f\x8b", 2) === 0) {
+            $file['error'] = __('Compressed SVG (.svgz) is not accepted. Upload an uncompressed .svg file.', 'site-essentials');
+            return $file;
+        }
+
+        // Decode numeric and named entities before inspection so that
+        // &#106;avascript: and &#x6a;avascript: are seen the way a parser sees them.
+        $probe = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $probe = preg_replace('/\s+/', ' ', $probe);
+
+        // Reject rather than clean. A file tripping any of these is not a logo.
+        $forbidden = [
+            '/<\s*script/i'                            => 'a <script> element',
+            '/<\s*foreignObject/i'                     => 'a <foreignObject> element',
+            '/<\s*(?:animate|set|handler)\b/i'         => 'SMIL animation elements',
+            '/<\s*(?:iframe|embed|object|audio|video)/i' => 'an embedded media or frame element',
+            '/\bon[a-z]+\s*=/i'                        => 'an inline event handler',
+            '/(?:javascript|vbscript)\s*:/i'           => 'a script URI',
+            '/<\s*use[^>]+href\s*=\s*["\']?\s*(?:data|https?):/i' => 'an external or data: <use> reference',
+            '/<!ENTITY/i'                              => 'an XML entity declaration',
+        ];
+        foreach ($forbidden as $pattern => $description) {
+            if (preg_match($pattern, $probe)) {
+                $file['error'] = sprintf(
+                    /* translators: %s: description of the disallowed SVG feature. */
+                    __('This SVG was rejected because it contains %s. Export a plain SVG without scripting or animation.', 'site-essentials'),
+                    $description
+                );
+                return $file;
+            }
+        }
+
+        // Strip anything that is inert but has no place in a logo, then confirm
+        // the file still parses as XML.
+        $clean = preg_replace('/<\?xml-stylesheet[^>]*\?>/i', '', $content);
+        $clean = preg_replace('/<!DOCTYPE[^>]*>/is', '', $clean);
+
+        $previous = libxml_use_internal_errors(true);
+        $doc      = new \DOMDocument();
+        $parsed   = $doc->loadXML($clean, LIBXML_NONET | LIBXML_NOENT);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (!$parsed || !$doc->documentElement || strtolower($doc->documentElement->nodeName) !== 'svg') {
+            $file['error'] = __('This file is not valid SVG.', 'site-essentials');
+            return $file;
+        }
+
+        // An unchecked write here would leave the original, unsanitised bytes in
+        // place while the upload continued as if it had been cleaned.
+        if (file_put_contents($file['tmp_name'], $clean) === false) {
+            $file['error'] = __('Could not write the sanitised SVG file.', 'site-essentials');
+            return $file;
+        }
+
         return $file;
     }
 

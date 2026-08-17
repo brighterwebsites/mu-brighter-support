@@ -474,13 +474,22 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
                 <div class="scos-form__slug">scos_sa_postly_api_key</div>
               </th>
               <td>
-                <input id="bw_postly_api_key" name="bw_postly_api_key" type="text"
+                <?php // Rendered empty and never populated: the stored key must not reach the page source. ?>
+                <input id="bw_postly_api_key" name="bw_postly_api_key" type="password"
                        class="scos-input scos-input--mono"
-                       value="<?php echo esc_attr( $postly_api_key ); ?>">
+                       autocomplete="new-password"
+                       value=""
+                       placeholder="<?php echo esc_attr( $postly_api_key ? __( 'Saved — leave blank to keep', 'site-essentials' ) : '' ); ?>">
                 <p class="description">
                   <?php esc_html_e( 'Your Postly.ai API key. Get it from', 'site-essentials' ); ?>
                   <a href="https://app.postly.ai" target="_blank" rel="noopener">app.postly.ai</a>.
                 </p>
+                <?php if ( $postly_api_key ) : ?>
+                  <label class="description" for="bw_postly_api_key_clear">
+                    <input type="checkbox" id="bw_postly_api_key_clear" name="bw_postly_api_key_clear" value="1">
+                    <?php esc_html_e( 'Delete the stored key', 'site-essentials' ); ?>
+                  </label>
+                <?php endif; ?>
               </td>
             </tr>
             <?php // TODO: migrate key bw_postly_workspace_id → scos_sa_postly_workspace_id — SCOS-SA-PASS1 ?>
@@ -649,7 +658,13 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
                 <p class="description">
                   <?php esc_html_e( 'Auto-generated. Authenticates the internal REST endpoint (POST /wp-json/bw-social/v1/amplify). Keep private.', 'site-essentials' ); ?>
                 </p>
-                <input type="hidden" name="bw_social_webhook_secret" value="<?php echo esc_attr( $webhook_secret ); ?>">
+                <?php
+                // No hidden field round-tripping the secret through the browser. The save
+                // handler generates one when absent and otherwise only writes when the
+                // posted value differs from the stored one — and a field pre-filled with
+                // the stored value never differs, so it could never do anything except
+                // put the secret in the page source on every load.
+                ?>
               </td>
             </tr>
           </tbody>
