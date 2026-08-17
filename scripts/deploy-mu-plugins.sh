@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # deploy-mu-plugins.sh - Deploy SCOS MU plugins to Brighter Websites managed sites
-# v2.0 | 2026-08-17
+# v2.1 | 2026-08-17
 #
 # Run as root on the web server. Fetches a specific commit of this repo from
 # GitHub and syncs the folders/files this repo owns into each site's
@@ -92,7 +92,7 @@ while [ $# -gt 0 ]; do
         --yes|-y)    ASSUME_YES=1; shift ;;
         --skip-lint) SKIP_LINT=1; shift ;;
         --no-backup) DO_BACKUP=0; shift ;;
-        -h|--help)   sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)   sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*)          die "Unknown option: $1" ;;
         *)
             [ "$REF_SET" -eq 0 ] || die "Only one ref may be given (got '$REF' and '$1')"
@@ -208,7 +208,9 @@ TEMP_DIR="$(mktemp -d -t scos-deploy-XXXXXXXXXX)"
 chmod 700 "$TEMP_DIR"
 cleanup() {
     local rc=$?
-    [ -n "${TEMP_DIR:-}" ] && [ -d "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+    if [ -n "${TEMP_DIR:-}" ] && [ -d "$TEMP_DIR" ]; then
+        rm -rf "$TEMP_DIR"
+    fi
     exit $rc
 }
 trap cleanup EXIT INT TERM
@@ -284,10 +286,14 @@ else
         fi
     done < <(
         for d in "${OWNED_DIRS[@]}"; do
-            [ -d "$SRC_DIR/$d" ] && find "$SRC_DIR/$d" -type f -name '*.php' -print0
+            if [ -d "$SRC_DIR/$d" ]; then
+                find "$SRC_DIR/$d" -type f -name '*.php' -print0
+            fi
         done
         for f in "${OWNED_FILES[@]}"; do
-            [ -f "$SRC_DIR/$f" ] && printf '%s\0' "$SRC_DIR/$f"
+            if [ -f "$SRC_DIR/$f" ]; then
+                printf '%s\0' "$SRC_DIR/$f"
+            fi
         done
     )
     [ "$LINT_FAILED" -eq 0 ] || die "$LINT_FAILED file(s) failed php -l at commit $SHORT. Nothing deployed."
@@ -348,10 +354,10 @@ backup_site() {
     chmod 700 "$BACKUP_ROOT/$domain"
 
     for d in "${OWNED_DIRS[@]}"; do
-        [ -d "$mu/$d" ] && tar_args+=("$d")
+        if [ -d "$mu/$d" ]; then tar_args+=("$d"); fi
     done
     for f in "${OWNED_FILES[@]}"; do
-        [ -f "$mu/$f" ] && tar_args+=("$f")
+        if [ -f "$mu/$f" ]; then tar_args+=("$f"); fi
     done
 
     if [ "${#tar_args[@]}" -eq 0 ]; then
@@ -368,9 +374,11 @@ backup_site() {
 restore_site() {
     # $1 = backup archive, $2 = mu-plugins path
     local archive="$1" mu="$2"
-    [ -n "$archive" ] && [ -f "$archive" ] || return 1
+    if [ -z "$archive" ] || [ ! -f "$archive" ]; then
+        return 1
+    fi
     for d in "${OWNED_DIRS[@]}"; do
-        [ -d "$mu/$d" ] && rm -rf "${mu:?}/${d:?}"
+        if [ -d "$mu/$d" ]; then rm -rf "${mu:?}/${d:?}"; fi
     done
     tar -xzf "$archive" -C "$mu"
 }
@@ -379,10 +387,21 @@ prune_backups() {
     local domain="$1"
     local dir="$BACKUP_ROOT/$domain"
     [ -d "$dir" ] || return 0
-    # shellcheck disable=SC2012
-    ls -1t "$dir"/*.tar.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while IFS= read -r old; do
-        rm -f "$old"
-    done
+
+    # Read from a process substitution rather than a pipeline. Under
+    # `set -o pipefail` a pipeline starting with a non-matching glob exits
+    # non-zero (ls returns 2), which `set -e` turns into an aborted run - on the
+    # very first deploy to a site, when there is nothing to prune yet.
+    local old
+    while IFS= read -r old; do
+        if [ -n "$old" ]; then rm -f "$old"; fi
+    done < <(
+        find "$dir" -maxdepth 1 -type f -name '*.tar.gz' -printf '%T@ %p\n' 2>/dev/null \
+            | sort -rn \
+            | tail -n +$((KEEP_BACKUPS + 1)) \
+            | cut -d' ' -f2-
+    )
+    return 0
 }
 
 for i in "${!SITE_DOMAIN[@]}"; do
@@ -420,10 +439,10 @@ for i in "${!SITE_DOMAIN[@]}"; do
 
     if [ "$DRY_RUN" -eq 1 ]; then
         for d in "${OWNED_DIRS[@]}"; do
-            [ -d "$SRC_DIR/$d" ] && echo "  would sync  $d/ -> $MU_PLUGINS_PATH/$d/"
+            if [ -d "$SRC_DIR/$d" ]; then echo "  would sync  $d/ -> $MU_PLUGINS_PATH/$d/"; fi
         done
         for f in "${OWNED_FILES[@]}"; do
-            [ -f "$SRC_DIR/$f" ] && echo "  would copy  $f -> $MU_PLUGINS_PATH/$f"
+            if [ -f "$SRC_DIR/$f" ]; then echo "  would copy  $f -> $MU_PLUGINS_PATH/$f"; fi
         done
         echo "  would chown -R $SITE_USER_NAME:$SITE_USER_NAME (owned paths only)"
         SUCCESS=$((SUCCESS + 1))
@@ -444,7 +463,7 @@ for i in "${!SITE_DOMAIN[@]}"; do
             site_failed "backup failed - refusing to deploy without a rollback point"
             continue
         fi
-        [ -n "$BACKUP_PATH" ] && info "  backed up to $BACKUP_PATH"
+        if [ -n "$BACKUP_PATH" ]; then info "  backed up to $BACKUP_PATH"; fi
     fi
 
     # -- Sync --------------------------------------------------------------
