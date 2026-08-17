@@ -55,7 +55,7 @@ class Anthropic_Client {
 	 * @throws \RuntimeException on API error or bad response.
 	 */
 	public static function generate_captions( array $post_context, array $frames = [], int $count = 3 ): array {
-		$api_key = get_option( 'bw_anthropic_api_key', '' );
+		$api_key = self::get_api_key();
 		if ( ! $api_key ) {
 			$msg = 'Anthropic API key is not configured.';
 			error_log( self::LOG_PREFIX . ' ' . $msg );
@@ -135,7 +135,7 @@ class Anthropic_Client {
 	 * @throws \RuntimeException
 	 */
 	public static function generate_gmb_caption( array $post_context ): string {
-		$api_key = get_option( 'bw_anthropic_api_key', '' );
+		$api_key = self::get_api_key();
 		if ( ! $api_key ) {
 			$msg = 'Anthropic API key is not configured.';
 			error_log( self::LOG_PREFIX . ' ' . $msg );
@@ -439,24 +439,79 @@ class Anthropic_Client {
 	}
 
 	/**
-	 * Create a deny-all .htaccess in wp-content/ai-knowledge/ if absent.
-	 * PHP reads files via filesystem — only direct HTTP access is blocked.
+	 * Resolve the Anthropic API key.
+	 *
+	 * A wp-config.php constant takes precedence over the stored option, so the
+	 * key can be kept out of the database (and out of any database dump) on
+	 * sites that prefer it. Mirrors the Email Delivery module's handling.
+	 *
+	 * @since 1.1.0
+	 * @return string Empty string when no key is configured.
+	 */
+	private static function get_api_key(): string {
+		if ( defined( 'SE_ANTHROPIC_API_KEY' ) && is_string( SE_ANTHROPIC_API_KEY ) && SE_ANTHROPIC_API_KEY !== '' ) {
+			return SE_ANTHROPIC_API_KEY;
+		}
+		// TODO: migrate to se_ prefix (shared across modules) — see CLAUDE.md §3.
+		$stored = get_option( 'bw_anthropic_api_key', '' );
+		return is_string( $stored ) ? $stored : '';
+	}
+
+	/**
+	 * Ensure wp-content/ai-knowledge/ is not reachable over HTTP.
+	 *
+	 * The folder holds client strategy documents, so exposure is a confidentiality
+	 * problem rather than an execution one. PHP reads the files from disk, so
+	 * blocking direct HTTP access costs nothing.
+	 *
+	 * @since 1.1.0 Creates the directory guard unconditionally, emits both Apache
+	 *              2.2 and 2.4 syntax, adds an index.php, and reports write failures.
 	 */
 	private static function maybe_create_htaccess(): void {
-		$dir      = WP_CONTENT_DIR . '/ai-knowledge';
-		$htaccess = $dir . '/.htaccess';
+		$dir = WP_CONTENT_DIR . '/ai-knowledge';
 
-		if ( ! is_dir( $dir ) || file_exists( $htaccess ) || ! is_writable( $dir ) ) {
+		// Previously this returned early when the directory did not exist, so a
+		// folder created later by another process (CLI sync, deploy) was left
+		// unguarded until something happened to call this again.
+		if ( ! is_dir( $dir ) ) {
+			if ( ! wp_mkdir_p( $dir ) ) {
+				return;
+			}
+		}
+
+		if ( ! is_writable( $dir ) ) {
+			error_log( self::LOG_PREFIX . ' ai-knowledge directory is not writable; cannot install access guard.' );
 			return;
 		}
 
-		$content = "# Block direct HTTP access — PHP reads this folder safely via filesystem\n"
-				 . "Order deny,allow\n"
-				 . "Deny from all\n"
-				 . "\n"
-				 . "# Nginx: add to server block:\n"
-				 . "# location ^~ /wp-content/ai-knowledge/ { deny all; }\n";
+		$htaccess = $dir . '/.htaccess';
+		if ( ! file_exists( $htaccess ) ) {
+			// Order/Deny is Apache 2.2 (mod_access). Apache 2.4 needs mod_authz_core
+			// syntax, and without it the old directives are either ignored or fatal
+			// depending on whether mod_access_compat is loaded — either way the
+			// folder was not reliably protected.
+			$content = "# Block direct HTTP access - PHP reads this folder from disk.\n"
+					 . "<IfModule mod_authz_core.c>\n"
+					 . "\tRequire all denied\n"
+					 . "</IfModule>\n"
+					 . "<IfModule !mod_authz_core.c>\n"
+					 . "\tOrder deny,allow\n"
+					 . "\tDeny from all\n"
+					 . "</IfModule>\n"
+					 . "\n"
+					 . "# Nginx ignores .htaccess. Add to the server block:\n"
+					 . "# location ^~ /wp-content/ai-knowledge/ { deny all; }\n";
 
-		@file_put_contents( $htaccess, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			if ( false === file_put_contents( $htaccess, $content ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions
+				error_log( self::LOG_PREFIX . ' failed to write ai-knowledge/.htaccess; folder may be publicly readable.' );
+			}
+		}
+
+		// Second line of defence: stops directory listing where .htaccess is not
+		// honoured at all (nginx), though it does not stop direct file requests.
+		$index = $dir . '/index.php';
+		if ( ! file_exists( $index ) ) {
+			@file_put_contents( $index, "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		}
 	}
 }
