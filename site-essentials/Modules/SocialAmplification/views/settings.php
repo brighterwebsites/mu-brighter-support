@@ -658,7 +658,13 @@ $page_url = admin_url( 'admin.php?page=site-essentials-social-amplification' );
                 <p class="description">
                   <?php esc_html_e( 'Auto-generated. Authenticates the internal REST endpoint (POST /wp-json/bw-social/v1/amplify). Keep private.', 'site-essentials' ); ?>
                 </p>
-                <input type="hidden" name="bw_social_webhook_secret" value="<?php echo esc_attr( $webhook_secret ); ?>">
+                <?php
+                // No hidden field round-tripping the secret through the browser. The save
+                // handler generates one when absent and otherwise only writes when the
+                // posted value differs from the stored one — and a field pre-filled with
+                // the stored value never differs, so it could never do anything except
+                // put the secret in the page source on every load.
+                ?>
               </td>
             </tr>
           </tbody>
