@@ -173,6 +173,13 @@ class Cpt_Module implements Module_Interface {
             if (!empty($opts['include_tags'])) {
                 add_action('init', [$this, 'register_projects_tags'], 25);
             }
+
+            // Project Selector Gutenberg block — pick projects by ID for the default editor.
+            require_once __DIR__ . '/Projects/Project_Selector_Block.php';
+            \SiteEssentials\Modules\CustomPosts\Projects\Project_Selector_Block::init();
+
+            require_once __DIR__ . '/Projects/Project_Selector_REST.php';
+            \SiteEssentials\Modules\CustomPosts\Projects\Project_Selector_REST::init();
         }
 
         // ─── Reviews CPT ─────────────────────────────────────────────────────

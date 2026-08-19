@@ -213,3 +213,58 @@ ul.bw-breadcrumbs {
         rgba(0, 0, 0, 0.35) 100%
     );
 }
+
+/* ============================================
+ * PROJECT SELECTOR BLOCK
+ * Layout only — colour/typography inherits from site
+ * ============================================ */
+
+.bw-project-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.bw-project-card {
+    display: flex;
+    text-decoration: none;
+    color: inherit;
+}
+
+.bw-project-card--horizontal {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.bw-project-card--stacked {
+    flex-direction: column;
+}
+
+.bw-project-card__media {
+    flex-shrink: 0;
+}
+
+.bw-project-card--horizontal .bw-project-card__media {
+    width: 35%;
+    max-width: 320px;
+}
+
+.bw-project-card--stacked .bw-project-card__media {
+    width: 100%;
+}
+
+.bw-project-card__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.bw-project-card__body {
+    flex: 1;
+}
+
+.bw-project-card__title {
+    margin-top: 0;
+}
