@@ -2,13 +2,15 @@
 /**
  * Agentic Module — settings view
  *
- * v1.0 | 2026-06-22
+ * v1.1 | 2026-08-04
  *
  * Template C (single-section settings). Rendered inside <div class="wrap scos">
  * by Admin_UI::render_agentic_page().
  *
  * Variables available:
- * @var bool $enabled Whether Markdown for Agents is enabled.
+ * @var bool $enabled        Whether Markdown for Agents is enabled.
+ * @var bool $webmcp_enabled Whether the WebMCP widget is enabled.
+ * @var int  $webmcp_page_id Page ID for the /mcp/ page.
  *
  * @package    SiteEssentials
  * @subpackage Modules\Agentic\Views
@@ -64,6 +66,99 @@ defined( 'ABSPATH' ) || exit;
 				</span>
 			</label>
 			<div class="scos-form__slug" style="margin-top:var(--scos-s-3)">scos_agentic_markdown_enabled</div>
+		</div>
+	</div>
+
+	<!-- ── WebMCP Widget ─────────────────────────────────────────────────── -->
+	<div class="scos-card" style="margin-bottom:var(--scos-s-6)">
+		<div class="scos-card__header scos-card__header--plain">
+			<h2 class="scos-card__title"><?php esc_html_e( 'WebMCP Widget', 'site-essentials' ); ?></h2>
+		</div>
+		<div class="scos-card__body">
+			<label class="scos-checkbox-row" style="cursor:pointer;margin-bottom:var(--scos-s-4)">
+				<input
+					type="checkbox"
+					name="scos_agentic_webmcp_enabled"
+					id="scos_agentic_webmcp_enabled"
+					value="1"
+					<?php checked( $webmcp_enabled ); ?>>
+				<span>
+					<strong><?php esc_html_e( 'Enable WebMCP Widget', 'site-essentials' ); ?></strong>
+					<span class="description" style="display:block;margin-top:2px">
+						<?php esc_html_e( 'Loads the WebMCP widget and registers the four SCOS content tools (search, list, content, site-info) on the designated MCP page only. Requires the page ID to be set below.', 'site-essentials' ); ?>
+					</span>
+				</span>
+			</label>
+			<div class="scos-form__slug" style="margin-bottom:var(--scos-s-4)">scos_agentic_webmcp_enabled</div>
+
+			<table class="scos-form">
+				<tbody>
+					<tr>
+						<th>
+							<label for="scos_agentic_webmcp_page_id"><?php esc_html_e( 'MCP Page ID', 'site-essentials' ); ?></label>
+							<div class="scos-form__slug">scos_agentic_webmcp_page_id</div>
+						</th>
+						<td>
+							<input
+								id="scos_agentic_webmcp_page_id"
+								name="scos_agentic_webmcp_page_id"
+								type="number"
+								class="scos-input"
+								value="<?php echo esc_attr( $webmcp_page_id ?: '' ); ?>"
+								min="0"
+								style="width:120px">
+							<p class="description">
+								<?php esc_html_e( 'WordPress page ID of your /mcp/ page. The WebMCP widget loads only on this page. Leave blank to fall back to slug "mcp".', 'site-essentials' ); ?>
+							</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<p class="description" style="margin-top:var(--scos-s-4)">
+				<?php
+				printf(
+					/* translators: %s: REST API URL */
+					esc_html__( 'REST API base: %s', 'site-essentials' ),
+					'<code>' . esc_html( rest_url( 'scos/v1' ) ) . '</code>'
+				);
+				?>
+			</p>
+		</div>
+	</div>
+
+	<!-- ── Discovery Endpoints (read-only reference) ──────────────────────── -->
+	<div class="scos-card" style="margin-bottom:var(--scos-s-6)">
+		<div class="scos-card__header scos-card__header--plain">
+			<h2 class="scos-card__title"><?php esc_html_e( 'Discovery Endpoints', 'site-essentials' ); ?></h2>
+			<p class="scos-card__desc">
+				<?php esc_html_e( 'Published automatically. These let an agent find the API without being told where it is.', 'site-essentials' ); ?>
+			</p>
+		</div>
+		<div class="scos-card__body">
+			<table class="scos-form">
+				<tbody>
+					<?php
+					$scos_discovery = [
+						__( 'API Catalog (RFC 9727)', 'site-essentials' )  => \SiteEssentials\Modules\Agentic\Api_Catalog::get_url(),
+						__( 'OpenAPI 3.1 description', 'site-essentials' ) => \SiteEssentials\Modules\Agentic\OpenAPI_Spec::get_spec_url(),
+						__( 'Agent Skills index', 'site-essentials' )      => \SiteEssentials\Modules\Agentic\Agent_Skills::get_index_url(),
+						__( 'MCP Server Card', 'site-essentials' )         => \SiteEssentials\Modules\Agentic\Mcp_Server_Card::get_url(),
+						__( 'Health probe', 'site-essentials' )            => \SiteEssentials\Modules\Agentic\OpenAPI_Spec::get_health_url(),
+					];
+					foreach ( $scos_discovery as $scos_label => $scos_url ) :
+						?>
+						<tr>
+							<th><?php echo esc_html( $scos_label ); ?></th>
+							<td>
+								<a href="<?php echo esc_url( $scos_url ); ?>" target="_blank" rel="noopener">
+									<code><?php echo esc_html( $scos_url ); ?></code>
+								</a>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
 		</div>
 	</div>
 
