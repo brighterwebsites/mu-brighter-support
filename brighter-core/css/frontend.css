@@ -268,3 +268,36 @@ ul.bw-breadcrumbs {
 .bw-project-card__title {
     margin-top: 0;
 }
+
+/* ============================================
+ * PROJECT REVIEWS (linked via bw_related_project)
+ * Layout only — colour/typography inherits from site
+ * ============================================ */
+
+.bw-project-reviews {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.bw-project-review {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bw-project-review__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bw-project-review__platform-icon {
+    width: 1.5em;
+    height: 1.5em;
+    object-fit: contain;
+}
+
+.bw-project-reviews--fallback {
+    text-align: center;
+}

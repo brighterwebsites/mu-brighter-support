@@ -1250,6 +1250,12 @@ JS;
         $aggregate_renderer = new Aggregate_Review_Renderer();
         add_shortcode('bw_aggregate_review', [$aggregate_renderer, 'shortcode']);
 
+        // Project reviews — reviews linked to a project (bw_related_project meta,
+        // no ACF Extended required), with aggregate-rating fallback when none exist.
+        require_once __DIR__ . '/Project_Reviews_Renderer.php';
+        $project_reviews_renderer = new Project_Reviews_Renderer();
+        add_shortcode('bw_project_reviews', [$project_reviews_renderer, 'shortcode']);
+
         // JSON-LD token resolver — %%_scos_review_cards_json%%
         require_once __DIR__ . '/Review_Schema_Graph.php';
         Review_Schema_Graph::register();
