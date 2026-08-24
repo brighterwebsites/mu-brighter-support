@@ -172,11 +172,19 @@ class Project_Reviews_Renderer {
 	 * Fallback when the project has no linked reviews — aggregate stars + count.
 	 *
 	 * "{stars} {average} from {count} Reviews"
+	 *
+	 * Computed directly rather than via [bw_review_average]/[bw_review_count] —
+	 * those shortcodes return HTML-wrapped output
+	 * (`<div class="bw-review-average">5.0</div>`), not a plain number, so piping
+	 * that through esc_html() displayed the raw div tags as text instead of
+	 * rendering them. Mirrors Aggregate_Review_Renderer::get_aggregate_data().
 	 */
 	private function render_fallback(): string {
-		$average = do_shortcode( '[bw_review_average]' );
-		$count   = do_shortcode( '[bw_review_count]' );
-		$stars   = max( 0, min( 5, (int) round( (float) $average ) ) );
+		$stats = $this->get_aggregate_stats();
+
+		// Whole-star rounding — same convention as Aggregate_Review_Renderer
+		// (no partial/half-star fill exists anywhere in this codebase).
+		$stars = max( 0, min( 5, (int) round( $stats['average_raw'] ) ) );
 
 		ob_start();
 		?>
@@ -187,14 +195,48 @@ class Project_Reviews_Renderer {
 				printf(
 					/* translators: 1: average rating, 2: review count */
 					esc_html__( '%1$s from %2$s Reviews', 'site-essentials' ),
-					esc_html( $average ),
-					esc_html( $count )
+					esc_html( $stats['average'] ),
+					esc_html( (string) $stats['count'] )
 				);
 				?>
 			</p>
 		</div>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Site-wide review average + count, all published bw_reviews (matches the
+	 * default, unfiltered [bw_review_average]/[bw_review_count] shortcode scope).
+	 *
+	 * @return array{average: string, average_raw: float, count: int}
+	 */
+	private function get_aggregate_stats(): array {
+		$ids = get_posts( [
+			'post_type'      => Cpt_Module::POST_TYPE_REVIEWS,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		] );
+
+		$total = 0.0;
+		$count = 0;
+		foreach ( $ids as $review_id ) {
+			$rating = get_post_meta( (int) $review_id, 'bw_rating', true );
+			if ( '' !== $rating && is_numeric( $rating ) ) {
+				$total += (float) $rating;
+				$count++;
+			}
+		}
+
+		$average_raw = $count > 0 ? $total / $count : 0.0;
+
+		return [
+			'average'     => number_format( $average_raw, 1 ),
+			'average_raw' => $average_raw,
+			'count'       => $count,
+		];
 	}
 
 	/**
