@@ -138,6 +138,9 @@ elseif ( $active_tab === 'image-optimization' ) :
 				if ( get_option( 'disable_big_image_threshold', 0 ) ) {
 					echo '<input type="hidden" name="disable_big_image_threshold" value="1">';
 				}
+				if ( get_option( 'brighter_shortpixel_litespeed_compat', 0 ) ) {
+					echo '<input type="hidden" name="brighter_shortpixel_litespeed_compat" value="1">';
+				}
 				?>
 				<input type="hidden" name="image_max_dimension" value="<?php echo esc_attr( get_option( 'image_max_dimension', 2480 ) ); ?>">
 				<div class="scos-card__body">

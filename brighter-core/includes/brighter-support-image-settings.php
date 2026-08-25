@@ -3,9 +3,10 @@
  * Brighter Tools: Image Optimisation Settings (Admin UI)
  * 
  * File: brighter-support-image-settings.php
- * Version: 4.2.0
+ * Version: 4.3.0
  *
  * Changelog:
+ * 4.3.0 - Added LiteSpeed/ShortPixel WebP Compatibility toggle to Image Settings
  * 4.2.0 - Expose social-square (1080x1080) toggle in Manage Image Thumbnails & Sizes
  * 4.1.0 - Performance: Batch load settings, cache registered sizes, reduce queries
  * 4.0.0 - Initial release
@@ -34,10 +35,10 @@ class Brighter_Image_Settings_Cache {
         
         // Get all brighter image settings in one query
         $options = $wpdb->get_results(
-            "SELECT option_name, option_value 
-            FROM {$wpdb->options} 
-            WHERE option_name LIKE 'enable_size_%' 
-               OR option_name IN ('enable_image_resize', 'image_max_dimension', 'jpeg_quality', 'disable_big_image_threshold', 'brighter_enable_custom_hero', 'brighter_custom_hero_width', 'brighter_custom_hero_height')",
+            "SELECT option_name, option_value
+            FROM {$wpdb->options}
+            WHERE option_name LIKE 'enable_size_%'
+               OR option_name IN ('enable_image_resize', 'image_max_dimension', 'jpeg_quality', 'disable_big_image_threshold', 'brighter_enable_custom_hero', 'brighter_custom_hero_width', 'brighter_custom_hero_height', 'brighter_shortpixel_litespeed_compat')",
             OBJECT_K
         );
         
@@ -100,6 +101,7 @@ add_action('admin_init', function () {
     register_setting('brighter_optimisation_settings', 'image_max_dimension');
     register_setting('brighter_optimisation_settings', 'jpeg_quality');
     register_setting('brighter_optimisation_settings', 'disable_big_image_threshold');
+    register_setting('brighter_optimisation_settings', 'brighter_shortpixel_litespeed_compat');
 
     register_setting('brighter_optimisation_settings', 'brighter_enable_custom_hero', [
         'sanitize_callback' => function ($v) { return !empty($v) ? 1 : 0; },
@@ -151,6 +153,21 @@ add_action('admin_init', function () {
         $disabled = Brighter_Image_Settings_Cache::get('disable_big_image_threshold', 0);
         echo '<label><input type="checkbox" name="disable_big_image_threshold" value="1" ' . checked(1, $disabled, false) . '> Disable WordPress 2560px threshold</label>';
         echo '<p class="description">Recommended for media-rich sites or when needing image metadata on larger uploads. WordPress by default scales down images larger than 2560px.</p>';
+    }, 'brighter_optimisation_page', 'image_settings_section');
+
+    // LiteSpeed + ShortPixel WebP compatibility
+    add_settings_field('brighter_shortpixel_litespeed_compat', 'LiteSpeed / ShortPixel WebP Compatibility', function () {
+        $enabled = Brighter_Image_Settings_Cache::get('brighter_shortpixel_litespeed_compat', 0);
+        echo '<label><input type="checkbox" name="brighter_shortpixel_litespeed_compat" value="1" ' . checked(1, $enabled, false) . '> Make LiteSpeed Cache compatible with ShortPixel to serve WebP images</label>';
+        echo '<p class="description">Adds <code>add_filter(\'shortpixel/image/filecheck\', \'__return_true\')</code> so LiteSpeed Cache\'s WebP serving finds ShortPixel-generated WebP files.</p>';
+        if ($enabled) {
+            if (defined('SHORTPIXEL_USE_DOUBLE_WEBP_EXTENSION')) {
+                echo '<p class="description" style="color:#1a7f37;">&#10003; <code>SHORTPIXEL_USE_DOUBLE_WEBP_EXTENSION</code> is defined in wp-config.php.</p>';
+            } else {
+                echo '<p class="description" style="color:#b32d2e;"><strong>Setup incomplete:</strong> add this to wp-config.php to finish enabling this feature:</p>';
+                echo '<p class="description"><code>define(\'SHORTPIXEL_USE_DOUBLE_WEBP_EXTENSION\', true);</code></p>';
+            }
+        }
     }, 'brighter_optimisation_page', 'image_settings_section');
 
     // =========================================
@@ -250,6 +267,7 @@ add_action('update_option', function($option_name) {
         in_array($option_name, [
             'enable_image_resize', 'image_max_dimension', 'jpeg_quality', 'disable_big_image_threshold',
             'brighter_enable_custom_hero', 'brighter_custom_hero_width', 'brighter_custom_hero_height',
+            'brighter_shortpixel_litespeed_compat',
         ])) {
         Brighter_Image_Settings_Cache::clear();
         delete_transient('brighter_registered_sizes_html');
