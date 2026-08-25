@@ -6,9 +6,10 @@
  * Purpose: Core logic for resizing uploads, managing registered sizes,
  * thumbnail control, comment disable on attachments, and LiteSpeed fade-in CSS. and OG image injection.
  *  
- * Version: 4.3.0
+ * Version: 4.4.0
  *
  * Changelog:
+ * 4.4.0 - Added LiteSpeed/ShortPixel WebP compatibility filter (shortpixel/image/filecheck), option-gated
  * 4.3.0 - Added option to disable WordPress big_image_size_threshold (2560px scaling)
  * 4.2.0 - Removed og:image:secure_url (not needed for HTTPS sites), added Twitter card output after image
  * 4.1.0 - Added direct OG image meta tag injection (bypasses SEOPress filter issues)
@@ -30,6 +31,20 @@
 
 
 if (!defined('ABSPATH')) exit;
+
+// ==========================================
+// ✅ LiteSpeed / ShortPixel WebP compatibility
+// ==========================================
+// LiteSpeed Cache checks for a WebP file next to the original before serving
+// it; ShortPixel's own file-exists check (shortpixel/image/filecheck) can
+// disagree with that lookup and block WebP delivery. Forcing it to true
+// removes ShortPixel's check from the equation. Requires
+// define('SHORTPIXEL_USE_DOUBLE_WEBP_EXTENSION', true) in wp-config.php to
+// complete setup — that constant is not something a runtime filter can set,
+// so it's a manual step (reminder shown on the settings screen when missing).
+if (get_option('brighter_shortpixel_litespeed_compat', 0)) {
+    add_filter('shortpixel/image/filecheck', '__return_true');
+}
 
 // ==========================================
 // ✅ Disable big image size threshold (2560px)
