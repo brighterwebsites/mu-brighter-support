@@ -7,7 +7,8 @@
  *
  * @package    SiteEssentials
  * @subpackage Modules\Seo
- * @version    1.6 | 2026-07-15
+ * @version    1.7 | 2026-08-26 — Sitemap: guard <lastmod>/changefreq against zero-date
+ *             post_modified_gmt (was rendering as invalid "-0001-11-30..." XML)
  * @since      1.0.0
  */
 
@@ -502,10 +503,14 @@ class Seo_Module implements Module_Interface {
      * @return string  XML URL entry
      */
     private function generate_url_entry($post, $settings) {
+        $last_modified = $this->get_valid_modified_gmt($post);
+
         $xml = "\t<url>\n";
         $xml .= "\t\t<loc>" . esc_url(get_permalink($post)) . "</loc>\n";
-        $xml .= "\t\t<lastmod>" . mysql2date('c', $post->post_modified_gmt, false) . "</lastmod>\n";
-        $xml .= "\t\t<changefreq>" . $this->get_changefreq($post) . "</changefreq>\n";
+        if ($last_modified) {
+            $xml .= "\t\t<lastmod>" . mysql2date('c', $last_modified, false) . "</lastmod>\n";
+        }
+        $xml .= "\t\t<changefreq>" . $this->get_changefreq($post, $last_modified) . "</changefreq>\n";
         $xml .= "\t\t<priority>" . $this->get_priority($post) . "</priority>\n";
 
         // Add images if enabled
@@ -543,14 +548,51 @@ class Seo_Module implements Module_Interface {
     }
 
     /**
+     * Resolve a post's modified date to a value safe for date parsing.
+     *
+     * post_modified_gmt is occasionally left at MySQL's zero-date sentinel
+     * ('0000-00-00 00:00:00') — e.g. rows written by a bulk import that didn't
+     * set the column. strtotime() on that string doesn't fail cleanly; it
+     * silently rolls "month 0, day 0" back into the previous year (PHP's
+     * mktime-style normalisation), producing a bogus date like
+     * "-0001-11-30" instead of a parse error. Falls back to post_date_gmt,
+     * then to '' (caller omits <lastmod> entirely, same as the other
+     * <lastmod> sites in this file already do for a falsy date).
+     *
+     * @since 1.7
+     * @param  WP_Post $post Post object.
+     * @return string  Valid MySQL datetime string, or '' if none available.
+     */
+    private function get_valid_modified_gmt($post) {
+        foreach ([$post->post_modified_gmt, $post->post_date_gmt] as $candidate) {
+            if (!empty($candidate) && '0000-00-00 00:00:00' !== $candidate) {
+                return $candidate;
+            }
+        }
+        return '';
+    }
+
+    /**
      * Get change frequency for post
      *
      * @since  1.0.0
-     * @param  WP_Post $post Post object
+     * @param  WP_Post $post          Post object
+     * @param  string  $last_modified Pre-resolved valid modified date (see
+     *                                get_valid_modified_gmt()); resolved here
+     *                                if not passed in.
      * @return string  Change frequency
      */
-    private function get_changefreq($post) {
-        $age_days = (time() - strtotime($post->post_modified_gmt)) / DAY_IN_SECONDS;
+    private function get_changefreq($post, $last_modified = null) {
+        if (null === $last_modified) {
+            $last_modified = $this->get_valid_modified_gmt($post);
+        }
+
+        // No usable date at all — assume stable/rarely-changing content.
+        if (!$last_modified) {
+            return 'yearly';
+        }
+
+        $age_days = (time() - strtotime($last_modified)) / DAY_IN_SECONDS;
 
         if ($age_days < 1) {
             return 'hourly';
