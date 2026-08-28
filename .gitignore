@@ -14,6 +14,9 @@
 !GIT_SETUP_GUIDE.md
 !DEPLOYMENT.md
 
+# Module specs live beside the module they describe
+!site-essentials/Modules/**/SPEC.md
+
 # Documentation and example/template directories (local reference only)
 /docs/
 /archive/
