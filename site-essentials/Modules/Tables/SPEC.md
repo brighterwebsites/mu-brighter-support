@@ -121,6 +121,18 @@ System defaults are declared in `bw-tables.css`; the per-site skin overrides the
 
 Verify the actual handle/priority order on GS before deploying to the other four. If Breakdance's global stylesheet loads earlier, the fix is enqueue priority, not `!important`.
 
+### 3.6 Why the rules cannot live in Breakdance global CSS
+
+The prototype surfaced a hard constraint that settles the plugin-vs-Breakdance question on its own.
+
+**680px is not a Breakdance breakpoint.** GS registers 1119 / 1023 / 767 / 479 and nothing else. Breakdance's stylesheet importer routes an `@media` block into a registered breakpoint only when the query matches one exactly, so `@media (max-width: 680px)` — the media query the entire behaviour layer is built on — has no home in the global selector system. The three ways out are all worse than a plugin:
+
+- Register 680px as a custom site breakpoint. That adds a breakpoint tab to every element in the builder UI, on every site, to serve one component. Disproportionate.
+- Move the system to 767px to match Phone Landscape. Rejected — 680px is proven across three live sites and varying column counts.
+- Keep the rules in an element's Custom CSS field, where raw CSS passes through verbatim. This works (it is what the prototype does) but it is per-template, per-site, and unversioned.
+
+A plugin stylesheet is a plain `.css` file where 680px is simply 680px. No breakpoint registration, no matching rules, no builder-wide side effects. This is not a preference; it is the only place the breakpoint can live cleanly.
+
 ---
 
 ## 4. Token contract
@@ -137,15 +149,19 @@ Two-level by design. The component tokens are their own tier: the system never r
 | `--bw-t-head-ink` | Header text | Only if accent is light | `#ffffff` |
 | `--bw-t-radius` | Corner radius | Only if house style differs | `10px` |
 
-Guerilla Steel example:
+Guerilla Steel mapping, confirmed against the site's live variables:
 
 ```css
 :root {
-  --bw-t-accent:  var(--gs_red-9);   /* #B0081E */
-  --bw-t-surface: var(--gs_white);
-  --bw-t-ink:     var(--gs_charcoal-10);
+  --bw-t-accent:  var(--gs-color-primary);         /* #c8102e */
+  --bw-t-surface: var(--gs-color-surface-raised);  /* #ffffff */
+  --bw-t-ink:     var(--gs-color-ink);             /* #0e0e0f */
 }
 ```
+
+GS already carries a full semantic tier (`gs-color-primary`, `-surface`, `-surface-raised`, `-ink`, `-ink-inverse`, `-border`, `gs-shadow-color-200`), which settles v3's open question: the component tokens map onto the semantic tier, not the raw palette. Two of those are better-judged than the derivations in §4.2, so `--bw-t-border` and `--bw-t-shadow` move to the optional-override list — the prototype reads them as `var(--gs-color-border, <derived>)`.
+
+**Breakdance variables hold literals, not references.** Every value in the Variables panel is a hex or `rgba()`; the control is a colour picker. So this mapping cannot be created *as* Breakdance variables without duplicating the brand hex — it stays a small rule in Breakdance global CSS, written once per site by the deploy skill (§10).
 
 ### 4.2 Derived — never set per site
 
@@ -187,6 +203,8 @@ This also removes the argument for per-use `var(--bw-t-accent, #333)` fallbacks 
 
 Applies automatically to `.wp-block-table`, plus opt-in `.bw-table` for non-Gutenberg markup (the future custom elements path).
 
+**Where the classes land.** Gutenberg emits `<figure class="wp-block-table bw-stack bw-labels"><table>…</table></figure>` — both the block's own class and anything typed into Additional CSS class go on the **figure**, never the table. Every behaviour and modifier selector therefore targets the figure and reaches the table as a descendant (`.bw-stack table`, `.bw-compare tbody td:last-child`). Confirmed in the prototype; getting this backwards silently matches nothing.
+
 **Resolved: yes, auto-apply — gated by the module toggle.** Two conditions before any table changes appearance:
 
 1. The site has the token mapping block in Breakdance global CSS (§4.1).
@@ -204,13 +222,15 @@ Condition 2 is what makes the stylesheet load at all, so the module can ship to 
 | `.bw-stack` | Each row becomes a card, cells stack full-width | No |
 | `.bw-cards` | Each **column** becomes a card | Yes |
 
+**Correction from the prototype:** `.bw-labels` also needs JS, which v3 did not say. CSS cannot read a column heading into a cell's `::before` — `attr()` only reads an attribute on the cell itself — so each cell must be stamped with `data-bw-label` before the label rule can fire. That is a ~20-line pass, not the cards transform, but it means the JS-free set is baseline scroll, plain `.bw-stack`, and the three appearance modifiers. `.bw-labels` and `.bw-cards` both require the script.
+
 The no-class default is new. v2 had none, so an unclassed wide table just overflowed and broke the layout. Scroll-with-affordance is the correct floor.
 
 ### 5.3 Modifiers — stackable
 
 | Class | Effect |
 |---|---|
-| `.bw-labels` | In `stack`: header text as `::before` label per cell. In `cards`: first column's values become row labels, and column 1 is omitted as its own card. |
+| `.bw-labels` | In `stack`: header text as `::before` label per cell (via a `data-bw-label` stamp — see §5.2). In `cards`: first column's values become row labels, and column 1 is omitted as its own card. |
 | `.bw-hide-first` | Omit first column entirely (cards only, no label use) |
 | `.bw-compare` | Last column highlighted as featured; in cards, last card gets accent border |
 | `.bw-pricing` | SKU / config / price column width treatment |
