@@ -74,6 +74,7 @@ Modules load only when enabled. Status reflects current `main` branch.
 | **Analytics** | `site-essentials/Modules/Analytics/` | ✅ Active — GA4 config, seeding management |
 | **Business Info** | `site-essentials/Modules/BusinessInfo/` | ✅ Active — centralised business data |
 | **WordPress Tweaks** | `site-essentials/Modules/WordPressTweaks/` | ✅ Active |
+| **Tables** | `site-essentials/Modules/Tables/` | ✅ Active — responsive Gutenberg table styling, block-sidebar layouts, 3-token per-site skin |
 | **Email Delivery** | `site-essentials/Modules/EmailDelivery/` | ✅ Active |
 | **Client Onboarding** | `site-essentials/Modules/ClientOnboarding/` | ✅ Active |
 | **CAR injection** | `brighter-core/includes/scos-car-injection.php` | ✅ Active — outputs `window.scosCAR` in `<head>` |

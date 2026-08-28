@@ -311,3 +311,16 @@ a:focus-visible {
     outline: 3px solid #0073aa;
     outline-offset: 2px;
 }
+
+/* Tables module — token swatch in the module settings panel.
+   The background is set inline because it reads a live front-end custom
+   property; size, shape and border stay here as tokens. */
+.scos-tables__swatch {
+    display: inline-block;
+    width: var(--scos-s-5);
+    height: var(--scos-s-5);
+    margin-right: var(--scos-s-2);
+    vertical-align: middle;
+    border: 1px solid var(--scos-border);
+    border-radius: var(--scos-r-sm);
+}
