@@ -111,7 +111,7 @@ add_action( 'init', [ 'SE_Deployment_Check', 'init' ] );
  *
  * @since 1.0.0
  */
-define('SITE_ESSENTIALS_VERSION', '1.1.0');
+define('SITE_ESSENTIALS_VERSION', '1.2.0');
 
 /**
  * Site Essentials Base Path
@@ -232,6 +232,11 @@ add_action('init', function() {
         \SiteEssentials\Core\Module_Loader::register(
             'agentic',
             \SiteEssentials\Modules\Agentic\Agentic_Module::class
+        );
+
+        \SiteEssentials\Core\Module_Loader::register(
+            'tables',
+            \SiteEssentials\Modules\Tables\Tables_Module::class
         );
 
         // CRITICAL: Disable WordPress core sitemaps (wp-sitemap.xml) so only our sitemap.xml is used.

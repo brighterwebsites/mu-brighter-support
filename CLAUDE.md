@@ -238,6 +238,7 @@ Canonical reference: `mu-brighter-support-main/Naming-conventions.md` — that d
 
 - ALL new meta and option keys MUST follow the prefix table above
 - NEVER create new keys with `bw_` prefix — deprecated
+- This applies to **PHP meta and option keys only**. Front-end CSS class and custom-property namespaces are a separate convention: a shared agency component keeps the `bw-` prefix (e.g. the Tables module's `bw-stack`, `--bw-t-accent`)
 - If you encounter `bw_` keys in existing code, flag with `// TODO: migrate to scos_ or se_` — do NOT auto-rename
 - Format: always lowercase, words separated by underscores
 - Transients: `se_[name]`
@@ -282,6 +283,7 @@ If B > A + 20%: build in brighter-core and add:
 | JSON-LD schema output | `Schema` |
 | Business name, address, contact fields | `BusinessInfo` |
 | Performance tweaks, security, WP cleanup | `WordPressTweaks` |
+| Front-end table styling and layouts | `Tables` |
 | Agency identity, support hub, redirects | `Agency` (site-essentials core) |
 
 **File and folder conventions:**
@@ -311,10 +313,10 @@ If any of these introduce risk: add a module enable/disable toggle or site-level
 ## 5. Admin UI — SCOS Design System
 
 Canonical references (read before generating any admin UI):
-- `cursor-handoff/SPEC.md` — page templates, menu structure, do's/don'ts (wins over this file if conflict)
-- `cursor-handoff/tokens.css` — all design tokens
-- `cursor-handoff/scos-ui.css` — all component styles
-- `cursor-handoff/snippets.html` — copy-paste markup for every component
+- `design-set/README.md` — page templates, menu structure, do's/don'ts (wins over this file if conflict)
+- `site-essentials/assets/css/tokens.css` — all design tokens
+- `site-essentials/assets/css/scos-ui.css` — all component styles
+- `design-set/snippets.html` — copy-paste markup for every component
 
 ### Mandatory: Page Wrapper
 

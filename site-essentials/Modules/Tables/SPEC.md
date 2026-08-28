@@ -152,7 +152,11 @@ Two-level by design. The component tokens are their own tier: the system never r
 | `--bw-t-head-ink` | Header text | Only if accent is light | `#ffffff` |
 | `--bw-t-radius` | Corner radius | Only if house style differs | `0` (square) |
 | `--bw-t-border` | Cell rules | Only if the site has a judged border colour | derived from ink |
-| `--bw-t-shadow` | Card shadow in stack | Only if the site has a shadow scale | derived from ink |
+| `--bw-t-shadow` | Frame and card shadow | Only if the site has a shadow scale | derived from ink |
+| `--bw-t-highlight-hover` | Row hover, featured-column hover | Only if the derived tint is wrong | derived from accent |
+| `--bw-t-font` | Table typeface | Only if tables should differ from body copy | `inherit` |
+
+**Three is the contract.** A site with no judged border colour, shadow scale or hover tint writes three declarations and nothing else. GS writes seven only because it has better values than the derivations for four of them. v2 exposed fifteen tokens; v3 reaches three by deriving the rest with `color-mix()`.
 
 The defaults are deliberately grey and square: the component must contain no site-specific values, and an unmapped table should look like nobody styled it rather than like a half-applied theme. The shared stylesheet never references a site's own variables - the GS mapping below is the only place `--gs-*` appears.
 
@@ -244,6 +248,20 @@ The no-class default is new. v2 had none, so an unclassed wide table just overfl
 | `.bw-compact` | Smaller type, tighter rows |
 
 This collapses v2's three fused `collapse-col*` classes into `bw-cards` / `bw-cards bw-hide-first` / `bw-cards bw-labels`, and the JS drops from three query loops to one.
+
+### 5.3.1 Restored from v2
+
+The first v3.1 pass was written from the class taxonomy without access to the v2 stylesheet (site-local to brighterwebsites.com.au, not in this repo). Reading the original surfaced seven things it had dropped, all now ported:
+
+- **Row hover** — `tbody tr:hover` to `--bw-t-highlight`, and `.bw-compare tbody tr:hover td:last-child` to `--bw-t-highlight-hover`. Missing entirely.
+- **Vertical column rules** — `th/td:not(:last-child) { border-right }`. Leaving these to WordPress core's block-library default is unsafe: core sets `border: 1px solid` on every cell, and any site rule that writes all four border sides silently cancels it. That is exactly why two GS tables with no class rendered differently — one page still carried an inline copy that only set `border-bottom`, so core's side borders survived there and not elsewhere.
+- **The desktop frame** — outer border, radius and shadow on the figure, with the mobile baseline reset that strips all three below the breakpoint.
+- **Caption styling.**
+- **`--bw-t-font`**, so tables can differ from body copy.
+- **Real pricing widths** — 105px SKU, 100px price, 100px minimum on the third column, rather than a `width: 1%` approximation.
+- **Compare's 3px accent side borders**, rather than the inset box-shadow the first pass used.
+
+Two v2 behaviours were deliberately not carried: the bare `table { }` and `caption { }` selectors (principle 4), rescoped under `.wp-block-table`; and `border-spacing: 0 !important`, unnecessary once `border-collapse: collapse` is set on the same element.
 
 ### 5.4 Not in this system
 
