@@ -121,17 +121,20 @@ System defaults are declared in `bw-tables.css`; the per-site skin overrides the
 
 Verify the actual handle/priority order on GS before deploying to the other four. If Breakdance's global stylesheet loads earlier, the fix is enqueue priority, not `!important`.
 
-### 3.6 Why the rules cannot live in Breakdance global CSS
+### 3.6 Where the 680px behaviour layer can live
 
-The prototype surfaced a hard constraint that settles the plugin-vs-Breakdance question on its own.
+v3.1 first claimed 680px "has no home in Breakdance." That was wrong, and worth stating plainly because it was used to justify the plugin. The real picture, established by testing on GS:
 
-**680px is not a Breakdance breakpoint.** GS registers 1119 / 1023 / 767 / 479 and nothing else. Breakdance's stylesheet importer routes an `@media` block into a registered breakpoint only when the query matches one exactly, so `@media (max-width: 680px)` — the media query the entire behaviour layer is built on — has no home in the global selector system. The three ways out are all worse than a plugin:
+| Route | 680px `@media` | Notes |
+|---|---|---|
+| Custom CSS box on an element, typed by hand | **Works** | Raw CSS passes through verbatim and cascades down normally from any breakpoint state above 680px. Filing a query into the JSON tree under a registered breakpoint is a convenience for styling visually in the builder, not a requirement. |
+| `insert-stylesheet` (global selectors, MCP) | **Silently dropped** | Tested: `@media (max-width: 680px)` returns `Skipped @media block ... (no registered breakpoint matches this query)` and the rule is discarded. |
+| Element Custom CSS box, via MCP | **Not writable** | `TemplateContentArea`'s schema exposes no `css` key and sets `additionalProperties: false` on `settings.advanced`, so `edit-post` rejects it - even though the element already stores one and the builder UI shows the box. |
+| Registering 680px as a site breakpoint | **Unreliable** | Custom breakpoints behave inconsistently, particularly above desktop or between built-ins. Small ones (e.g. 370px) work acceptably but still don't behave identically to built-in breakpoints. Not worth it for one component. |
 
-- Register 680px as a custom site breakpoint. That adds a breakpoint tab to every element in the builder UI, on every site, to serve one component. Disproportionate.
-- Move the system to 767px to match Phone Landscape. Rejected — 680px is proven across three live sites and varying column counts.
-- Keep the rules in an element's Custom CSS field, where raw CSS passes through verbatim. This works (it is what the prototype does) but it is per-template, per-site, and unversioned.
+So a human can place the behaviour layer in Breakdance; an agent working through MCP currently cannot place it anywhere. Since the point of the deploy skill (SS10) is that an agent does the per-site setup, that gap matters.
 
-A plugin stylesheet is a plain `.css` file where 680px is simply 680px. No breakpoint registration, no matching rules, no builder-wide side effects. This is not a preference; it is the only place the breakpoint can live cleanly.
+This is no longer the deciding argument for the module - those are the block-style dropdown (SS7), the JS (SS6), and one versioned source of truth across five sites. It is a supporting one.
 
 ---
 
@@ -143,11 +146,15 @@ Two-level by design. The component tokens are their own tier: the system never r
 
 | Token | Purpose | Required | Default if unmapped |
 |---|---|---|---|
-| `--bw-t-accent` | Header gradient, featured column, panel borders | Yes | `#2f3337` (neutral charcoal) |
+| `--bw-t-accent` | Header gradient, featured column, panel borders | Yes | `#3f3f46` (neutral grey) |
 | `--bw-t-surface` | Table / card background | Yes | `#ffffff` |
-| `--bw-t-ink` | Body text colour | Yes | `#1f2325` |
+| `--bw-t-ink` | Body text colour | Yes | `#18181b` |
 | `--bw-t-head-ink` | Header text | Only if accent is light | `#ffffff` |
-| `--bw-t-radius` | Corner radius | Only if house style differs | `10px` |
+| `--bw-t-radius` | Corner radius | Only if house style differs | `0` (square) |
+| `--bw-t-border` | Cell rules | Only if the site has a judged border colour | derived from ink |
+| `--bw-t-shadow` | Card shadow in stack | Only if the site has a shadow scale | derived from ink |
+
+The defaults are deliberately grey and square: the component must contain no site-specific values, and an unmapped table should look like nobody styled it rather than like a half-applied theme. The shared stylesheet never references a site's own variables - the GS mapping below is the only place `--gs-*` appears.
 
 Guerilla Steel mapping, confirmed against the site's live variables:
 

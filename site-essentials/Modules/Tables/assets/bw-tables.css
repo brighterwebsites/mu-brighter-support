@@ -1,22 +1,29 @@
-/* BW Universal Table System — v3.1 prototype
-   Token mapping is GS-specific; everything below it is the shared component. */
+/* BW Universal Table System — v3.1
+   Shared agency component (tier 2, bw- namespace). Contains no site-specific
+   values: a site supplies its own three-token mapping block in Breakdance
+   global CSS, which loads after this and overrides the defaults below. */
 
 :root {
-  /* ---- site mapping (the only per-site block) ---- */
-  --bw-t-accent:   var(--gs-color-primary, #2f3337);
-  --bw-t-surface:  var(--gs-color-surface-raised, #ffffff);
-  --bw-t-ink:      var(--gs-color-ink, #1f2325);
-  --bw-t-head-ink: var(--gs-color-ink-inverse, #ffffff);
-  --bw-t-radius:   10px;
+  /* ---- component defaults: neutral grey, square, no site knowledge ----
+     A site overrides only what it needs in its own mapping block. These
+     values exist so the component is never broken when unmapped (the
+     Gutenberg editor, an archive, a gate leak) — they are a floor, not a
+     theme, and deliberately look like nobody styled it on purpose. */
+  --bw-t-accent:   #3f3f46;
+  --bw-t-surface:  #ffffff;
+  --bw-t-ink:      #18181b;
+  --bw-t-head-ink: #ffffff;
+  --bw-t-radius:   0;
 
-  /* ---- derived: never set per site ---- */
-  --bw-t-border:    var(--gs-color-border, color-mix(in srgb, var(--bw-t-ink) 15%, transparent));
+  /* ---- derived: never set per site, but overridable where a site has a
+     better-judged value of its own (border, shadow) ---- */
+  --bw-t-border:    color-mix(in srgb, var(--bw-t-ink) 15%, transparent);
   --bw-t-row:       color-mix(in srgb, var(--bw-t-ink) 4%,  var(--bw-t-surface));
   --bw-t-muted:     color-mix(in srgb, var(--bw-t-ink) 60%, var(--bw-t-surface));
   --bw-t-highlight: color-mix(in srgb, var(--bw-t-accent) 8%, var(--bw-t-surface));
   --bw-t-head-from: var(--bw-t-accent);
   --bw-t-head-to:   color-mix(in srgb, var(--bw-t-accent) 80%, #000);
-  --bw-t-shadow:    0 2px 10px var(--gs-shadow-color-200, color-mix(in srgb, var(--bw-t-ink) 12%, transparent));
+  --bw-t-shadow:    0 2px 10px color-mix(in srgb, var(--bw-t-ink) 12%, transparent);
   --bw-t-bp:        680px;
 }
 
